@@ -1,0 +1,17 @@
+# macOS
+.DS_Store
+
+# Xcode
+DerivedData/
+build/
+xcuserdata/
+*.xcuserstate
+
+# Swift
+.swiftpm/xcode/package.xcworkspace/xcuserdata/
+
+# Secrets
+.env
+.env.*
+*.p12
+*.mobileprovision

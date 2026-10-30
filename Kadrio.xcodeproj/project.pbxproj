@@ -6,8 +6,27 @@
 	objectVersion = 110;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		CAD00000000000000000000B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 30B784A93094BBE600612376 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 30B784B03094BBE600612376;
+			remoteInfo = Kadrio;
+		};
+		CAD00000000000000000006F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 30B784A93094BBE600612376 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 30B784B03094BBE600612376;
+			remoteInfo = Kadrio;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		30B784B13094BBE600612376 /* Kadrio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Kadrio.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CAD000000000000000000002 /* KadrioTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = KadrioTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		CAD000000000000000000066 /* KadrioUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = KadrioUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -16,10 +35,30 @@
 			path = Kadrio;
 			sourceTree = "<group>";
 		};
+		CAD000000000000000000001 /* KadrioTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = KadrioTests;
+			sourceTree = "<group>";
+		};
+		CAD000000000000000000065 /* KadrioUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = KadrioUITests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		30B784AE3094BBE600612376 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+		CAD000000000000000000005 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+		CAD000000000000000000069 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
 			);
@@ -31,6 +70,8 @@
 			isa = PBXGroup;
 			children = (
 				30B784B33094BBE600612376 /* Kadrio */,
+				CAD000000000000000000065 /* KadrioUITests */,
+				CAD000000000000000000001 /* KadrioTests */,
 				30B784B23094BBE600612376 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -39,6 +80,8 @@
 			isa = PBXGroup;
 			children = (
 				30B784B13094BBE600612376 /* Kadrio.app */,
+				CAD000000000000000000066 /* KadrioUITests.xctest */,
+				CAD000000000000000000002 /* KadrioTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -64,6 +107,48 @@
 			productReference = 30B784B13094BBE600612376 /* Kadrio.app */;
 			productType = "com.apple.product-type.application";
 		};
+		CAD000000000000000000003 /* KadrioTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CAD000000000000000000007 /* Build configuration list for PBXNativeTarget "KadrioTests" */;
+			buildPhases = (
+				CAD000000000000000000004 /* Sources */,
+				CAD000000000000000000005 /* Frameworks */,
+				CAD000000000000000000006 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CAD00000000000000000000A /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				CAD000000000000000000001 /* KadrioTests */,
+			);
+			name = KadrioTests;
+			productName = KadrioTests;
+			productReference = CAD000000000000000000002 /* KadrioTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		CAD000000000000000000067 /* KadrioUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CAD00000000000000000006B /* Build configuration list for PBXNativeTarget "KadrioUITests" */;
+			buildPhases = (
+				CAD000000000000000000068 /* Sources */,
+				CAD000000000000000000069 /* Frameworks */,
+				CAD00000000000000000006A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CAD00000000000000000006E /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				CAD000000000000000000065 /* KadrioUITests */,
+			);
+			name = KadrioUITests;
+			productName = KadrioUITests;
+			productReference = CAD000000000000000000066 /* KadrioUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -85,6 +170,7 @@
 			knownRegions = (
 				en,
 				Base,
+				ru,
 			);
 			mainGroup = 30B784A83094BBE600612376;
 			minimizedProjectReferenceProxies = 1;
@@ -93,6 +179,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
+				CAD000000000000000000067 /* KadrioUITests */,
+				CAD000000000000000000003 /* KadrioTests */,
 				30B784B03094BBE600612376 /* Kadrio */,
 			);
 		};
@@ -100,6 +188,16 @@
 
 /* Begin PBXResourcesBuildPhase section */
 		30B784AF3094BBE600612376 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		CAD000000000000000000006 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		CAD00000000000000000006A /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
 			);
@@ -112,7 +210,30 @@
 			files = (
 			);
 		};
+		CAD000000000000000000004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		CAD000000000000000000068 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		CAD00000000000000000000A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 30B784B03094BBE600612376 /* Kadrio */;
+			targetProxy = CAD00000000000000000000B /* PBXContainerItemProxy */;
+		};
+		CAD00000000000000000006E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 30B784B03094BBE600612376 /* Kadrio */;
+			targetProxy = CAD00000000000000000006F /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		30B784BA3094BBE700612376 /* Debug configuration for PBXProject "Kadrio" */ = {
@@ -168,7 +289,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -226,7 +347,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -246,11 +367,15 @@
 				DEVELOPMENT_TEAM = W5GN64PCQ2;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Kadrio;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Take photos to edit in Kadrio.";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Save your edited photos to your photo library.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -259,12 +384,16 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.alex.kadrio.Kadrio;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = targeted;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -278,11 +407,15 @@
 				DEVELOPMENT_TEAM = W5GN64PCQ2;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Kadrio;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Take photos to edit in Kadrio.";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Save your edited photos to your photo library.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -291,12 +424,96 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.alex.kadrio.Kadrio;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = targeted;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		CAD000000000000000000008 /* Debug configuration for PBXNativeTarget "KadrioTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = W5GN64PCQ2;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.alex.kadrio.KadrioTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_STRICT_CONCURRENCY = targeted;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Kadrio.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Kadrio";
+			};
+			name = Debug;
+		};
+		CAD000000000000000000009 /* Release configuration for PBXNativeTarget "KadrioTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = W5GN64PCQ2;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.alex.kadrio.KadrioTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_STRICT_CONCURRENCY = targeted;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Kadrio.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Kadrio";
+			};
+			name = Release;
+		};
+		CAD00000000000000000006C /* Debug configuration for PBXNativeTarget "KadrioUITests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = W5GN64PCQ2;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.alex.kadrio.KadrioUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = Kadrio;
+			};
+			name = Debug;
+		};
+		CAD00000000000000000006D /* Release configuration for PBXNativeTarget "KadrioUITests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = W5GN64PCQ2;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.alex.kadrio.KadrioUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = Kadrio;
 			};
 			name = Release;
 		};
@@ -316,6 +533,22 @@
 			buildConfigurations = (
 				30B784BD3094BBE700612376 /* Debug configuration for PBXNativeTarget "Kadrio" */,
 				30B784BE3094BBE700612376 /* Release configuration for PBXNativeTarget "Kadrio" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		CAD000000000000000000007 /* Build configuration list for PBXNativeTarget "KadrioTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CAD000000000000000000008 /* Debug configuration for PBXNativeTarget "KadrioTests" */,
+				CAD000000000000000000009 /* Release configuration for PBXNativeTarget "KadrioTests" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		CAD00000000000000000006B /* Build configuration list for PBXNativeTarget "KadrioUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CAD00000000000000000006C /* Debug configuration for PBXNativeTarget "KadrioUITests" */,
+				CAD00000000000000000006D /* Release configuration for PBXNativeTarget "KadrioUITests" */,
 			);
 			defaultConfigurationName = Release;
 		};
