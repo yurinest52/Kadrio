@@ -10,7 +10,7 @@ struct KadrioConfiguration {
     }
     static var supportEmail: String? { value("KadrioSupportEmail") }
     static func documentURL(_ document: KadrioDocument) -> URL? {
-        guard let value = value(document == .privacy ? "KadrioPrivacyURL" : "KadrioTermsURL"),
+        guard let value = value(document == .support ? "KadrioSupportURL" : document == .privacy ? "KadrioPrivacyURL" : "KadrioTermsURL"),
             let url = URL(string: value), url.scheme == "https"
         else { return nil }
         return url
@@ -64,8 +64,8 @@ struct KadrioSettingsView: View {
     @EnvironmentObject private var app: KadrioAppState
     @Environment(\.dismiss) private var dismiss
     @Environment(\.requestReview) private var requestReview
+    @Environment(\.openURL) private var openURL
     @State private var confirmClear = false
-    @State private var document: KadrioDocument?
     var body: some View {
         GeometryReader { geometry in
             ScrollView {
@@ -105,12 +105,12 @@ struct KadrioSettingsView: View {
                     VStack(spacing: 0) {
                         settingsRow("rateUs") { requestReview() }
                         Divider().padding(.leading, 18)
-                        settingsRow("support") { document = .support }
+                        settingsRow("support") { if let url = KadrioConfiguration.documentURL(.support) { openURL(url) } }
                     }.background(.white, in: RoundedRectangle(cornerRadius: 20)).kadrioCardShadow().padding(.top, -7)
                     VStack(spacing: 0) {
-                        settingsRow("privacy") { document = .privacy }
+                        settingsRow("privacy") { if let url = KadrioConfiguration.documentURL(.privacy) { openURL(url) } }
                         Divider().padding(.leading, 18)
-                        settingsRow("terms") { document = .terms }
+                        settingsRow("terms") { if let url = KadrioConfiguration.documentURL(.terms) { openURL(url) } }
                     }.background(.white, in: RoundedRectangle(cornerRadius: 20)).kadrioCardShadow().padding(.top, -7)
                     Spacer()
                 }.font(.system(size: 17)).padding(.horizontal, 24).padding(.top, 12).padding(.bottom, 16).frame(
@@ -119,7 +119,7 @@ struct KadrioSettingsView: View {
         }
         .background(Color.kadrioBackground)
         .toolbar(.hidden, for: .navigationBar)
-        .sheet(item: $document) { KadrioDocumentView(document: $0) }
+        .modifier(KadrioScreenEntrance())
         .alert(kadrioText("clear.title"), isPresented: $confirmClear) {
             Button(kadrioText("cancel"), role: .cancel) {}
             Button(kadrioText("clear"), role: .destructive) { Task { await app.clearHistory() } }

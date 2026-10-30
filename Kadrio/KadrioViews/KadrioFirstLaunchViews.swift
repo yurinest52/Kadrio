@@ -9,15 +9,16 @@ struct KadrioOnboardingView: View {
                     VStack(spacing: 0) {
                         ZStack(alignment: .bottomTrailing) {
                             Image("KadrioOnboardingPortrait").resizable().scaledToFill().frame(
-                                width: max(1, geometry.size.width - 48), height: geometry.size.height * 0.48
+                                width: max(1, geometry.size.width - 48),
+                                height: min(max(1, geometry.size.width - 48) * 1.28, geometry.size.height * 0.67)
                             ).clipped().clipShape(RoundedRectangle(cornerRadius: 25))
                             Image("KadrioPortraitPreview").resizable().scaledToFill().frame(width: 128, height: 155)
                                 .clipped().clipShape(RoundedRectangle(cornerRadius: 23)).rotationEffect(.degrees(7))
                                 .offset(x: -22, y: 25)
-                        }.padding(.top, 20)
+                        }.padding(.top, 12).padding(.bottom, 18)
                         Spacer(minLength: 22)
                         Text(kadrioText("onboarding.title")).font(.system(size: 29, weight: .heavy)).tracking(-0.9)
-                            .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+                            .multilineTextAlignment(.center).frame(maxWidth: 300).fixedSize(horizontal: false, vertical: true)
                         Text(kadrioText("onboarding.subtitle")).font(.system(size: 15)).foregroundStyle(
                             Color.kadrioSecondary
                         ).multilineTextAlignment(.center).padding(.top, 15)
@@ -39,6 +40,7 @@ struct KadrioOnboardingView: View {
             .background(Color.kadrioBackground.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
         }
+        .modifier(KadrioScreenEntrance())
     }
 }
 
@@ -46,22 +48,14 @@ struct KadrioPaywallView: View {
     let onClose: () -> Void
     @EnvironmentObject private var app: KadrioAppState
     @State private var processing = false
-    @State private var document: KadrioDocument?
+    @Environment(\.openURL) private var openURL
     var body: some View {
         NavigationStack {
             GeometryReader { geometry in
                 ScrollView {
                     VStack(spacing: 18) {
-                        ZStack {
-                            Image("KadrioPaywallLake").resizable().scaledToFill().frame(width: 136, height: 178)
-                                .clipped().clipShape(RoundedRectangle(cornerRadius: 20)).rotationEffect(.degrees(-9))
-                                .offset(x: -78, y: 14)
-                            Image("KadrioPaywallMountains").resizable().scaledToFill().frame(width: 136, height: 178)
-                                .clipped().clipShape(RoundedRectangle(cornerRadius: 20)).rotationEffect(.degrees(8))
-                                .offset(x: 78, y: 7)
-                            Image("KadrioPortraitPreview").resizable().scaledToFill().frame(width: 140, height: 185)
-                                .clipped().clipShape(RoundedRectangle(cornerRadius: 20))
-                        }.frame(height: min(220, geometry.size.height * 0.29))
+                        KadrioPaywallArtwork()
+                            .frame(height: max(1, geometry.size.width - 48) * 230 / 342)
                         VStack(spacing: 7) {
                             Text(kadrioText("paywall.title")).font(.system(size: 28, weight: .heavy)).tracking(-0.8)
                             Text(kadrioText("paywall.subtitle")).font(.system(size: 14)).foregroundStyle(
@@ -92,26 +86,50 @@ struct KadrioPaywallView: View {
                             }
                         }.accessibilityIdentifier("KadrioPaywallGetTokens").disabled(processing)
                         HStack(spacing: 8) {
-                            Button(kadrioText("privacy")) { document = .privacy }
+                            Button(kadrioText("privacy")) { if let url = KadrioConfiguration.documentURL(.privacy) { openURL(url) } }
                             Text("·")
-                            Button(kadrioText("terms")) { document = .terms }
+                            Button(kadrioText("terms")) { if let url = KadrioConfiguration.documentURL(.terms) { openURL(url) } }
                         }.font(.system(size: 11)).foregroundStyle(Color.kadrioSecondary).padding(.bottom, 15)
-                    }.padding(.horizontal, 24).padding(.top, 12).frame(minHeight: geometry.size.height, alignment: .top)
+                    }.padding(.horizontal, 24).padding(.top, 0).frame(minHeight: geometry.size.height, alignment: .top)
                 }.scrollIndicators(.hidden)
             }
+            .background(Color.kadrioBackground)
             .safeAreaInset(edge: .top, spacing: 0) {
                 HStack {
                     Spacer()
                     KadrioCircleButton(symbol: "xmark", label: kadrioText("close"), action: onClose).disabled(
                         processing
                     ).accessibilityIdentifier("KadrioPaywallClose")
-                }.padding(.horizontal, 24).padding(.top, 12).padding(.bottom, 8).background(Color.kadrioBackground)
+                }.padding(.horizontal, 24).padding(.top, 4).padding(.bottom, 0).background(Color.kadrioBackground)
             }
             .toolbar(.hidden, for: .navigationBar)
         }
         .background(Color.kadrioBackground.ignoresSafeArea())
         .interactiveDismissDisabled(true)
-        .sheet(item: $document) { KadrioDocumentView(document: $0) }
+        .modifier(KadrioScreenEntrance())
         .modifier(KadrioErrorModifier(app: app))
+    }
+}
+
+struct KadrioPaywallArtwork: View {
+    var body: some View {
+        GeometryReader { geometry in
+            let width = geometry.size.width
+            ZStack {
+                Image("KadrioPaywallLake").resizable().scaledToFill()
+                    .frame(width: width * 0.398, height: width * 0.52)
+                    .clipped().clipShape(RoundedRectangle(cornerRadius: 20))
+                    .rotationEffect(.degrees(8)).offset(x: -width * 0.23, y: width * 0.035)
+                Image("KadrioPaywallMountains").resizable().scaledToFill()
+                    .frame(width: width * 0.398, height: width * 0.52)
+                    .clipped().clipShape(RoundedRectangle(cornerRadius: 20))
+                    .rotationEffect(.degrees(-8)).offset(x: width * 0.23, y: -width * 0.015)
+                Image("KadrioPortraitPreview").resizable().scaledToFill()
+                    .frame(width: width * 0.41, height: width * 0.54)
+                    .clipped().clipShape(RoundedRectangle(cornerRadius: 20))
+                    .offset(y: -width * 0.035)
+            }.frame(width: width, height: geometry.size.height)
+        }
+        .accessibilityHidden(true)
     }
 }

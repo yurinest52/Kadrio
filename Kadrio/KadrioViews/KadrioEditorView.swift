@@ -30,7 +30,7 @@ struct KadrioEditorView: View {
                 .padding(.vertical, 10)
                 .accessibilityIdentifier("KadrioEditorPreview")
                 .safeAreaInset(edge: .top, spacing: 0) {
-                    header.padding(.top, 12).padding(.bottom, 8).background(Color.kadrioBackground)
+                    header.padding(.top, 4).padding(.bottom, 4).background(Color.kadrioBackground)
                 }
                 .safeAreaInset(edge: .bottom, spacing: 0) {
                     VStack(spacing: 12) {
@@ -41,6 +41,7 @@ struct KadrioEditorView: View {
                 .background(Color.kadrioBackground.ignoresSafeArea())
                 .toolbar(.hidden, for: .navigationBar)
         }
+        .modifier(KadrioScreenEntrance())
         .interactiveDismissDisabled(model.dirty || app.saving)
         .sheet(isPresented: $showColor) {
             KadrioFrameColorView(
@@ -298,7 +299,7 @@ struct KadrioEditorView: View {
                         }
                     } label: {
                         VStack(spacing: 6) {
-                            Image(systemName: ratio == .free ? "viewfinder" : "rectangle").font(.system(size: 18))
+                            KadrioCropRatioIcon(ratio: ratio)
                                 .frame(width: 38, height: 38).background(
                                     model.state.ratio == ratio ? .black : Color.kadrioBackground, in: Circle()
                                 ).foregroundStyle(model.state.ratio == ratio ? .white : .gray)
@@ -399,8 +400,8 @@ struct KadrioEditorView: View {
                     model.checkpoint()
                     showColor = true
                 } label: {
-                    Image(systemName: "paintpalette.fill").font(.system(size: 19)).foregroundStyle(.blue).frame(
-                        width: 32, height: 32)
+                    Image("kadrioowncolor").resizable().scaledToFit().frame(width: 24, height: 24)
+                        .frame(width: 32, height: 32)
                 }.accessibilityLabel(kadrioText("frameColor"))
                 Slider(
                     value: $model.state.thickness, in: 0.01...0.14,
@@ -408,8 +409,6 @@ struct KadrioEditorView: View {
                 ).onChange(of: model.state.thickness) { model.updatePreview() }.accessibilityLabel(
                     kadrioText("thickness"))
             }
-            Text(kadrioText("thickness")).font(.system(size: 10)).foregroundStyle(Color.kadrioSecondary).frame(
-                maxWidth: .infinity, alignment: .trailing)
         }
     }
 
@@ -431,9 +430,8 @@ struct KadrioEditorView: View {
 
     private func parameterSlider(_ title: String, value: Binding<Double>, range: ClosedRange<Double>) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(String(format: kadrioText("parameter.value"), kadrioText(title), Int(value.wrappedValue * 100))).font(
-                .system(size: 10)
-            ).foregroundStyle(Color.kadrioSecondary)
+            Text(title == "spacing" ? kadrioText(title) : String(format: kadrioText("parameter.value"), kadrioText(title), Int(value.wrappedValue * 100)))
+                .font(.system(size: 10)).foregroundStyle(Color.kadrioSecondary)
             Slider(
                 value: value, in: range,
                 onEditingChanged: { editing in if editing { model.checkpoint() } else { model.updatePreview() } }

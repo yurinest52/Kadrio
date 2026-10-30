@@ -109,3 +109,9 @@
 "hex.placeholder" = "#RRGGBB";
 "color.opacity" = "100%";
 "collage.addPhotos" = "Select %d more photos for this layout.";
+
+"color.grid" = "Grid";
+"color.sliders" = "Sliders";
+"color.recent" = "Recent";
+"color.saturation" = "Saturation";
+"color.brightness" = "Brightness";

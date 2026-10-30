@@ -109,3 +109,9 @@
 "hex.placeholder" = "#RRGGBB";
 "color.opacity" = "100%";
 "collage.addPhotos" = "Для этой раскладки выберите ещё фото: %d.";
+
+"color.grid" = "Сетка";
+"color.sliders" = "Ползунки";
+"color.recent" = "Недавние";
+"color.saturation" = "Насыщенность";
+"color.brightness" = "Яркость";

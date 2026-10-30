@@ -132,6 +132,7 @@ struct KadrioHomeView: View {
             .navigationDestination(isPresented: $settings) { KadrioSettingsView() }
             .toolbar(.hidden, for: .navigationBar)
         }
+        .modifier(KadrioScreenEntrance())
         .overlay {
             Color.black.opacity(addPhoto ? 0.14 : 0)
                 .ignoresSafeArea()
@@ -197,8 +198,10 @@ struct KadrioHomeView: View {
                                     .degrees(tool == .collage ? -3 : tool == .filters ? 3 : 0))
                         }.buttonStyle(.plain).accessibilityIdentifier("KadrioHomeTool-" + tool.rawValue).id(tool)
                     }
-                }.scrollTargetLayout().padding(.horizontal, 24).padding(.vertical, 7)
-            }.scrollIndicators(.hidden).scrollTargetBehavior(.viewAligned).scrollPosition(id: $carouselTool)
+                }.scrollTargetLayout().padding(.vertical, 10)
+            }.contentMargins(.horizontal, 32, for: .scrollContent)
+                .scrollClipDisabled()
+                .scrollIndicators(.hidden).scrollTargetBehavior(.viewAligned).scrollPosition(id: $carouselTool)
             HStack(spacing: 5) {
                 ForEach(KadrioTool.allCases) { tool in
                     Capsule().fill(carouselTool == tool ? .black : .gray.opacity(0.25)).frame(

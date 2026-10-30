@@ -14,6 +14,7 @@ struct KadrioRootView: View {
     @EnvironmentObject private var app: KadrioAppState
     @AppStorage("KadrioOnboardingCompleted") private var onboardingCompleted = false
     @State private var splashFinished = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var showingSplash: Bool { !splashFinished || !app.initialized }
     var body: some View {
@@ -21,12 +22,17 @@ struct KadrioRootView: View {
             if showingSplash { KadrioSplashView().transition(.opacity).zIndex(1) }
             else if !onboardingCompleted {
                 KadrioOnboardingView {
-                    onboardingCompleted = true
-                    app.showPaywall = true
+                    withAnimation(.easeInOut(duration: reduceMotion ? 0.15 : 0.3)) {
+                        onboardingCompleted = true
+                        app.showPaywall = true
+                    }
                 }
-            } else { KadrioHomeView() }
+                .transition(.opacity)
+            } else { KadrioHomeView().transition(.opacity) }
         }
-        .animation(.easeInOut(duration: 0.35), value: showingSplash)
+        .background(Color.kadrioBackground.ignoresSafeArea())
+        .animation(.easeInOut(duration: reduceMotion ? 0.15 : 0.35), value: showingSplash)
+        .animation(.easeInOut(duration: reduceMotion ? 0.15 : 0.3), value: onboardingCompleted)
         .task {
             let clock = ContinuousClock()
             let minimumSplashEnd = clock.now.advanced(by: .milliseconds(2400))

@@ -154,3 +154,30 @@ struct KadrioCameraView: UIViewControllerRepresentable {
         }
     }
 }
+
+struct KadrioCropRatioIcon: View {
+    let ratio: KadrioCropRatio
+    var body: some View {
+        let aspect = ratio.value ?? 1
+        let width = aspect >= 1 ? 16.0 : 19.0 * aspect
+        let height = aspect >= 1 ? 16.0 / aspect : 19.0
+        RoundedRectangle(cornerRadius: 2)
+            .stroke(style: StrokeStyle(lineWidth: 1.1, dash: ratio == .free ? [1.5, 1.5] : []))
+            .frame(width: width, height: height)
+            .frame(width: 22, height: 22)
+            .accessibilityHidden(true)
+    }
+}
+
+struct KadrioScreenEntrance: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var appeared = false
+    func body(content: Content) -> some View {
+        content
+            .opacity(appeared ? 1 : 0)
+            .offset(y: appeared || reduceMotion ? 0 : 8)
+            .onAppear {
+                withAnimation(.easeOut(duration: reduceMotion ? 0.15 : 0.3)) { appeared = true }
+            }
+    }
+}
