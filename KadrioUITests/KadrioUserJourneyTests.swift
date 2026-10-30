@@ -47,7 +47,7 @@ final class KadrioUserJourneyTests: XCTestCase {
         XCTAssertTrue(app.buttons["KadrioSource-photoLibrary"].waitForExistence(timeout: 3))
         capture(app, "KadrioPhotoSource")
         app.buttons["KadrioSource-photoLibrary"].tap()
-        let photo = app.images.matching(NSPredicate(format: "label BEGINSWITH 'Photo,' OR label BEGINSWITH 'Фото,'")).firstMatch
+        let photo = app.images.matching(NSPredicate(format: "label BEGINSWITH 'Photo,' OR label BEGINSWITH 'Фото,' OR label BEGINSWITH 'Фотография,'")).firstMatch
         if !photo.waitForExistence(timeout: 5) { print(app.debugDescription) }
         XCTAssertTrue(photo.exists)
         waitUntilHittable(photo)
@@ -90,7 +90,7 @@ final class KadrioUserJourneyTests: XCTestCase {
         capture(app, "KadrioPersistedWork")
         app.buttons["KadrioHomeTool-collage"].tap()
         app.buttons["KadrioSource-photoLibrary"].tap()
-        let photos = app.images.matching(NSPredicate(format: "label BEGINSWITH 'Photo,' OR label BEGINSWITH 'Фото,'"))
+        let photos = app.images.matching(NSPredicate(format: "label BEGINSWITH 'Photo,' OR label BEGINSWITH 'Фото,' OR label BEGINSWITH 'Фотография,'"))
         XCTAssertTrue(photos.firstMatch.waitForExistence(timeout: 5))
         for index in 0..<4 { photos.element(boundBy: index).tap() }
         app.buttons.matching(NSPredicate(format: "label == 'Add' OR label BEGINSWITH 'Add (' OR label == 'Добавить' OR label BEGINSWITH 'Добавить ('")).firstMatch.tap()
@@ -166,7 +166,7 @@ final class KadrioUserJourneyTests: XCTestCase {
         XCTAssertTrue(app.buttons["KadrioSource-photoLibrary"].waitForExistence(timeout: 3))
         capture(app, "KadrioDarkerPhotoSource")
         app.buttons["KadrioSource-photoLibrary"].tap()
-        let photos = app.images.matching(NSPredicate(format: "label BEGINSWITH 'Photo,' OR label BEGINSWITH 'Фото,'"))
+        let photos = app.images.matching(NSPredicate(format: "label BEGINSWITH 'Photo,' OR label BEGINSWITH 'Фото,' OR label BEGINSWITH 'Фотография,'"))
         XCTAssertTrue(photos.firstMatch.waitForExistence(timeout: 5))
         for index in 0..<3 { waitUntilHittable(photos.element(boundBy: index)); photos.element(boundBy: index).tap() }
         app.buttons.matching(NSPredicate(format: "label == 'Add' OR label BEGINSWITH 'Add (' OR label == 'Добавить' OR label BEGINSWITH 'Добавить ('")).firstMatch.tap()
@@ -177,7 +177,7 @@ final class KadrioUserJourneyTests: XCTestCase {
         app.buttons["Layout 3"].tap()
         capture(app, "KadrioFigmaTopCollage")
         app.buttons["Layout 4"].tap()
-        let additional = app.images.matching(NSPredicate(format: "label BEGINSWITH 'Photo,' OR label BEGINSWITH 'Фото,'" )).firstMatch
+        let additional = app.images.matching(NSPredicate(format: "label BEGINSWITH 'Photo,' OR label BEGINSWITH 'Фото,' OR label BEGINSWITH 'Фотография,'" )).firstMatch
         XCTAssertTrue(additional.waitForExistence(timeout: 5))
         waitUntilHittable(additional)
         additional.tap()
@@ -196,11 +196,108 @@ final class KadrioUserJourneyTests: XCTestCase {
         XCTAssertEqual(app.buttons["KadrioHomeTokens"].label, balance)
     }
 
+    @MainActor func testKadrioSafeAreaControls() throws {
+        continueAfterFailure = false
+        for language in ["en", "ru"] {
+            let app = XCUIApplication()
+            app.launchArguments = ["-AppleLanguages", "(\(language))", "-AppleLocale", language == "ru" ? "ru_RU" : "en_US"]
+            app.launch()
+            let next = app.buttons["KadrioOnboardingContinue"]
+            if next.waitForExistence(timeout: 4) {
+                checkSafeControl(next, in: app, atTop: false)
+                capture(app, "KadrioSafeOnboarding-" + language)
+                next.tap()
+                XCTAssertTrue(app.buttons["KadrioPaywallClose"].waitForExistence(timeout: 5))
+                checkSafeControl(app.buttons["KadrioPaywallClose"], in: app, atTop: true)
+                app.buttons["KadrioPaywallClose"].tap()
+            }
+            XCTAssertTrue(app.buttons["KadrioHomeTokens"].waitForExistence(timeout: 5))
+            checkSafeControl(app.buttons["KadrioHomeTokens"], in: app, atTop: true)
+            checkSafeControl(app.buttons["KadrioHomeSettings"], in: app, atTop: true)
+            checkSafeControl(app.buttons["KadrioHomeAddPhoto"], in: app, atTop: false)
+            capture(app, "KadrioSafeHome-" + language)
+            app.buttons["KadrioHomeTokens"].tap()
+            XCTAssertTrue(app.buttons["KadrioPaywallClose"].waitForExistence(timeout: 5))
+            checkSafeControl(app.buttons["KadrioPaywallClose"], in: app, atTop: true)
+            for _ in 0..<3 where !app.buttons["KadrioPaywallGetTokens"].isHittable { app.swipeUp() }
+            checkSafeControl(app.buttons["KadrioPaywallGetTokens"], in: app, atTop: false)
+            checkSafeControl(app.buttons["KadrioPaywallClose"], in: app, atTop: true)
+            capture(app, "KadrioSafePaywall-" + language)
+            app.buttons["KadrioPaywallClose"].tap()
+            app.buttons["KadrioHomeSettings"].tap()
+            XCTAssertTrue(app.buttons["KadrioSettingsBack"].waitForExistence(timeout: 5))
+            checkSafeControl(app.buttons["KadrioSettingsBack"], in: app, atTop: true)
+            for _ in 0..<3 where !app.buttons["KadrioSettingsRow-terms"].isHittable { app.swipeUp() }
+            checkSafeControl(app.buttons["KadrioSettingsRow-terms"], in: app, atTop: false)
+            capture(app, "KadrioSafeSettings-" + language)
+            for _ in 0..<3 where !app.buttons["KadrioSettingsBack"].isHittable { app.swipeDown() }
+            app.buttons["KadrioSettingsBack"].tap()
+            app.buttons["KadrioHomeTool-filters"].tap()
+            XCTAssertTrue(app.buttons["KadrioSourceCancel"].waitForExistence(timeout: 5))
+            checkSafeControl(app.buttons["KadrioSourceCancel"], in: app, atTop: false)
+            capture(app, "KadrioSafePhotoSource-" + language)
+            app.buttons["KadrioSource-photoLibrary"].tap()
+            let photo = app.images.matching(NSPredicate(format: "label BEGINSWITH 'Photo,' OR label BEGINSWITH 'Фото,' OR label BEGINSWITH 'Фотография,'")).firstMatch
+            XCTAssertTrue(photo.waitForExistence(timeout: 45))
+            waitUntilHittable(photo)
+            photo.tap()
+            if app.buttons["Add"].exists { app.buttons["Add"].tap() }
+            else if app.buttons["Добавить"].exists { app.buttons["Добавить"].tap() }
+            waitUntilPreviewReady(app)
+            for tool in ["crop", "filters", "frames"] {
+                app.buttons["KadrioEditorTool-" + tool].tap()
+                waitUntilPreviewReady(app)
+                checkSafeControl(app.buttons["KadrioEditorClose"], in: app, atTop: true)
+                checkSafeControl(app.buttons["KadrioEditorSave"], in: app, atTop: true)
+                let top = ["KadrioEditorClose", "KadrioEditorUndo", "KadrioEditorRedo", "KadrioEditorSave"].map { app.buttons[$0].frame }
+                for index in 0..<top.count { for other in top.dropFirst(index + 1) { XCTAssertFalse(top[index].intersects(other)) } }
+                let bottom = ["collage", "crop", "filters", "frames"].map { app.buttons["KadrioEditorTool-" + $0] }
+                for button in bottom { checkSafeControl(button, in: app, atTop: false) }
+                for index in 0..<bottom.count { for other in bottom.dropFirst(index + 1) { XCTAssertFalse(bottom[index].frame.intersects(other.frame)) } }
+                capture(app, "KadrioSafeEditor-" + tool + "-" + language)
+            }
+            let palette = app.buttons[language == "ru" ? "Цвет рамки" : "Frame color"]
+            palette.tap()
+            XCTAssertTrue(app.buttons["KadrioFrameColorDone"].waitForExistence(timeout: 5))
+            checkSafeControl(app.buttons["KadrioFrameColorDone"], in: app, atTop: false)
+            capture(app, "KadrioSafeFramePalette-" + language)
+            app.textFields[language == "ru" ? "Цвет HEX" : "HEX color"].tap()
+            if app.keyboards.firstMatch.waitForExistence(timeout: 2) {
+                XCTAssertLessThanOrEqual(app.buttons["KadrioFrameColorDone"].frame.maxY, app.keyboards.firstMatch.frame.minY - 6)
+                capture(app, "KadrioSafeFrameKeyboard-" + language)
+            }
+            app.buttons["KadrioFrameColorDone"].tap()
+            app.buttons["KadrioEditorClose"].tap()
+            if app.alerts.firstMatch.exists { app.alerts.buttons[language == "ru" ? "Не сохранять" : "Discard"].tap() }
+            XCTAssertTrue(app.buttons["KadrioHomeTokens"].waitForExistence(timeout: 5))
+            app.terminate()
+        }
+    }
+
+    @MainActor private func checkSafeControl(_ element: XCUIElement, in app: XCUIApplication, atTop: Bool) {
+        XCTAssertTrue(element.exists)
+        XCTAssertTrue(element.isHittable)
+        let window = app.windows.firstMatch.frame
+        let frame = element.frame
+        XCTAssertGreaterThanOrEqual(frame.minX, window.minX + 8)
+        XCTAssertLessThanOrEqual(frame.maxX, window.maxX - 8)
+        XCTAssertGreaterThan(frame.width, 0)
+        XCTAssertGreaterThan(frame.height, 0)
+        if atTop {
+            let status = app.statusBars.firstMatch
+            let statusBottom = status.exists ? status.frame.maxY : window.minY + (window.height > 750 ? 54 : 20)
+            XCTAssertGreaterThanOrEqual(frame.minY, statusBottom + 8)
+        } else {
+            let bottom = window.maxY - (window.height > 750 ? 34 : 0) - 10
+            XCTAssertLessThanOrEqual(frame.maxY, bottom)
+        }
+    }
+
     @MainActor private func openSinglePhotoEditor(_ app: XCUIApplication) {
         app.buttons["KadrioHomeTool-filters"].tap()
         XCTAssertTrue(app.buttons["KadrioSource-photoLibrary"].waitForExistence(timeout: 3))
         app.buttons["KadrioSource-photoLibrary"].tap()
-        let photo = app.images.matching(NSPredicate(format: "label BEGINSWITH 'Photo,' OR label BEGINSWITH 'Фото,'")).firstMatch
+        let photo = app.images.matching(NSPredicate(format: "label BEGINSWITH 'Photo,' OR label BEGINSWITH 'Фото,' OR label BEGINSWITH 'Фотография,'")).firstMatch
         XCTAssertTrue(photo.waitForExistence(timeout: 5))
         waitUntilHittable(photo)
         photo.tap()
