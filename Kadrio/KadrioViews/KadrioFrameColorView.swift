@@ -9,7 +9,7 @@ struct KadrioFrameColorView: View {
     @State private var hex = ""
     @State private var selectedTab = 1
     static let presets = [
-        KadrioColor(red: 0.06, green: 0.06, blue: 0.06), KadrioColor(), KadrioColor(red: 0.94, green: 0.4, blue: 0.35),
+        KadrioColor(red: 0.06, green: 0.06, blue: 0.06), KadrioColor(red: 242.0 / 255, green: 242.0 / 255, blue: 244.0 / 255), KadrioColor(red: 0.94, green: 0.4, blue: 0.35),
         KadrioColor(red: 1, green: 0.77, blue: 0.28), KadrioColor(red: 0.4, green: 0.72, blue: 0.65),
         KadrioColor(red: 0.31, green: 0.6, blue: 0.88), KadrioColor(red: 0.84, green: 0.32, blue: 0.57),
     ]

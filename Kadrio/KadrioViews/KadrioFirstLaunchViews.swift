@@ -48,14 +48,14 @@ struct KadrioPaywallView: View {
     let onClose: () -> Void
     @EnvironmentObject private var app: KadrioAppState
     @State private var processing = false
-    @Environment(\.openURL) private var openURL
+    private let legalURL = URL(string: "https://www.freeprivacypolicy.com/live/fa251b16-ff0a-4e3d-aa62-25984710d0cd")!
     var body: some View {
         NavigationStack {
             GeometryReader { geometry in
                 ScrollView {
                     VStack(spacing: 18) {
                         KadrioPaywallArtwork()
-                            .frame(height: max(1, geometry.size.width - 48) * 230 / 342)
+                            .frame(height: max(1, geometry.size.width - 48) * 250 / 342)
                         VStack(spacing: 7) {
                             Text(kadrioText("paywall.title")).font(.system(size: 28, weight: .heavy)).tracking(-0.8)
                             Text(kadrioText("paywall.subtitle")).font(.system(size: 14)).foregroundStyle(
@@ -86,9 +86,11 @@ struct KadrioPaywallView: View {
                             }
                         }.accessibilityIdentifier("KadrioPaywallGetTokens").disabled(processing)
                         HStack(spacing: 8) {
-                            Button(kadrioText("privacy")) { if let url = KadrioConfiguration.documentURL(.privacy) { openURL(url) } }
+                            Link(kadrioText("privacy"), destination: legalURL)
+                                .padding(.horizontal, 4).frame(minHeight: 44)
                             Text("·")
-                            Button(kadrioText("terms")) { if let url = KadrioConfiguration.documentURL(.terms) { openURL(url) } }
+                            Link(kadrioText("terms"), destination: legalURL)
+                                .padding(.horizontal, 4).frame(minHeight: 44)
                         }.font(.system(size: 11)).foregroundStyle(Color.kadrioSecondary).padding(.bottom, 15)
                     }.padding(.horizontal, 24).padding(.top, 0).frame(minHeight: geometry.size.height, alignment: .top)
                 }.scrollIndicators(.hidden)
@@ -114,21 +116,18 @@ struct KadrioPaywallView: View {
 struct KadrioPaywallArtwork: View {
     var body: some View {
         GeometryReader { geometry in
-            let width = geometry.size.width
+            let width = max(1, geometry.size.width - 16)
             ZStack {
-                Image("KadrioPaywallLake").resizable().scaledToFill()
+                Image("KadrioPaywallLake").resizable().scaledToFit()
                     .frame(width: width * 0.398, height: width * 0.52)
-                    .clipped().clipShape(RoundedRectangle(cornerRadius: 20))
                     .rotationEffect(.degrees(8)).offset(x: -width * 0.23, y: width * 0.035)
-                Image("KadrioPaywallMountains").resizable().scaledToFill()
+                Image("KadrioPaywallMountains").resizable().scaledToFit()
                     .frame(width: width * 0.398, height: width * 0.52)
-                    .clipped().clipShape(RoundedRectangle(cornerRadius: 20))
                     .rotationEffect(.degrees(-8)).offset(x: width * 0.23, y: -width * 0.015)
-                Image("KadrioPortraitPreview").resizable().scaledToFill()
+                Image("KadrioPortraitPreview").resizable().scaledToFit()
                     .frame(width: width * 0.41, height: width * 0.54)
-                    .clipped().clipShape(RoundedRectangle(cornerRadius: 20))
                     .offset(y: -width * 0.035)
-            }.frame(width: width, height: geometry.size.height)
+            }.frame(width: geometry.size.width, height: geometry.size.height)
         }
         .accessibilityHidden(true)
     }

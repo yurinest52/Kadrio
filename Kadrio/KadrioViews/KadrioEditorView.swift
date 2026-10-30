@@ -6,6 +6,7 @@ struct KadrioEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var model: KadrioEditorModel
     @State private var discard = false
+    @State private var showPhotoLimit = false
     @State private var returnHomeAfterPaywall = false
     @State private var comparing = false
     @State private var showColor = false
@@ -84,6 +85,33 @@ struct KadrioEditorView: View {
                 }
             }
         }
+        .overlay {
+            if showPhotoLimit {
+                ZStack {
+                    Color.black.opacity(0.3).ignoresSafeArea()
+                        .onTapGesture { showPhotoLimit = false }
+                    VStack(spacing: 14) {
+                        Image(systemName: "square.grid.2x2")
+                            .font(.system(size: 25, weight: .light))
+                            .frame(width: 56, height: 56)
+                            .background(Color.kadrioBackground, in: Circle())
+                        Text(kadrioText("collage.limit.title"))
+                            .font(.system(size: 20, weight: .bold))
+                        Text(kadrioText("collage.limit.message"))
+                            .font(.system(size: 14)).foregroundStyle(Color.kadrioSecondary)
+                        KadrioPrimaryButton(title: kadrioText("ok")) { showPhotoLimit = false }
+                            .padding(.top, 6)
+                    }
+                    .multilineTextAlignment(.center)
+                    .padding(24).frame(maxWidth: 320)
+                    .background(.white, in: RoundedRectangle(cornerRadius: 24))
+                    .shadow(color: .black.opacity(0.12), radius: 24, y: 8)
+                    .padding(.horizontal, 24)
+                    .accessibilityAddTraits(.isModal)
+                }.transition(.opacity)
+            }
+        }
+        .animation(.easeInOut(duration: 0.18), value: showPhotoLimit)
         .task {
             model.updatePreview()
             await model.loadThumbnails()
@@ -273,13 +301,17 @@ struct KadrioEditorView: View {
                     .accessibilityHint(kadrioText("collage.gesture"))
                 }
                 Button {
+                    guard model.sources.count < 4 else {
+                        showPhotoLimit = true
+                        return
+                    }
                     pendingLayout = nil
                     showPicker = true
                 } label: {
                     Image(systemName: "plus").font(.system(size: 20, weight: .light)).frame(maxWidth: .infinity).frame(
                         height: 44
                     ).background(Color.kadrioBackground, in: RoundedRectangle(cornerRadius: 12))
-                }.disabled(model.sources.count >= 4).accessibilityLabel(kadrioText("addPhoto"))
+                }.accessibilityLabel(kadrioText("addPhoto"))
             }
             parameterSlider("spacing", value: $model.state.spacing, range: 0...0.08)
             if model.sources.count < 2 {
@@ -310,26 +342,28 @@ struct KadrioEditorView: View {
                 }
             }
             HStack(spacing: 8) {
-                cropAction("rotate", symbol: "rotate.left") {
+                cropAction("rotate") {
                     model.change {
                         $0.turns = ($0.turns + 1) % 4
                         $0.crop = KadrioPlacement()
                         if $0.ratio == .free { $0.freeRatio = 1 / $0.freeRatio }
                     }
                 }
-                cropAction("flip", symbol: "arrow.left.and.right.righttriangle.left.righttriangle.right") {
+                cropAction("flip") {
                     model.change { $0.flipped.toggle() }
                 }
-                cropAction("reset", symbol: "arrow.counterclockwise") { model.resetCrop() }
+                cropAction("reset") { model.resetCrop() }
             }
         }
     }
 
-    private func cropAction(_ title: String, symbol: String, action: @escaping () -> Void) -> some View {
+    private func cropAction(_ title: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Label(kadrioText(title), systemImage: symbol).font(.system(size: 12, weight: .medium)).frame(
-                maxWidth: .infinity
-            ).frame(height: 34).background(Color.kadrioBackground, in: Capsule())
+            HStack(spacing: 6) {
+                KadrioCropActionIcon(action: title).frame(width: 14, height: 14)
+                Text(kadrioText(title))
+            }.font(.system(size: 12, weight: .medium)).frame(maxWidth: .infinity)
+                .frame(height: 34).background(Color.kadrioBackground, in: Capsule())
         }.buttonStyle(.plain)
     }
 

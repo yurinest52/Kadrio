@@ -40,3 +40,40 @@ private struct KadrioToolIconShape: Shape {
         return path.applying(transform)
     }
 }
+
+struct KadrioCropActionIcon: View {
+    let action: String
+    var body: some View {
+        Canvas { context, size in
+            let scale = min(size.width, size.height) / 24
+            context.scaleBy(x: scale, y: scale)
+            var path = Path()
+            if action == "flip" {
+                path.move(to: CGPoint(x: 12, y: 2))
+                path.addLine(to: CGPoint(x: 12, y: 22))
+                path.move(to: CGPoint(x: 16, y: 5))
+                path.addLine(to: CGPoint(x: 22, y: 18))
+                path.addLine(to: CGPoint(x: 16, y: 18))
+                path.closeSubpath()
+                var filled = Path()
+                filled.move(to: CGPoint(x: 8, y: 5))
+                filled.addLine(to: CGPoint(x: 2, y: 18))
+                filled.addLine(to: CGPoint(x: 8, y: 18))
+                filled.closeSubpath()
+                context.fill(filled, with: .foreground)
+            } else {
+                path.move(to: CGPoint(x: 20, y: 8))
+                path.addCurve(to: CGPoint(x: 5, y: 6), control1: CGPoint(x: 17, y: 2), control2: CGPoint(x: 9, y: 2))
+                path.addCurve(to: CGPoint(x: 11, y: 21), control1: CGPoint(x: 0, y: 12), control2: CGPoint(x: 4, y: 21))
+                path.addCurve(to: CGPoint(x: 21, y: 14), control1: CGPoint(x: 16, y: 21), control2: CGPoint(x: 20, y: 18))
+                path.move(to: CGPoint(x: 20, y: 2))
+                path.addLine(to: CGPoint(x: 20, y: 8))
+                path.addLine(to: CGPoint(x: 14, y: 8))
+                if action == "reset" {
+                    path = path.applying(CGAffineTransform(a: -1, b: 0, c: 0, d: 1, tx: 24, ty: 0))
+                }
+            }
+            context.stroke(path, with: .foreground, style: StrokeStyle(lineWidth: 1.8, lineCap: .round, lineJoin: .round))
+        }.accessibilityHidden(true)
+    }
+}

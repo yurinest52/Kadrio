@@ -174,28 +174,31 @@ struct KadrioHomeView: View {
     }
 
     private func carousel(width: CGFloat) -> some View {
-        VStack(spacing: 13) {
+        let cardWidth = max(1, (max(240, width) - 64) / 3)
+        let photoWidth = max(1, cardWidth - 10)
+        return VStack(spacing: 13) {
             ScrollView(.horizontal) {
-                HStack(spacing: -2) {
+                HStack(spacing: 0) {
                     ForEach(KadrioTool.allCases) { tool in
                         Button {
                             selectedTool = tool
                             addPhoto = true
                         } label: {
-                            Image(tool.asset).resizable().scaledToFill().frame(
-                                width: (max(240, width) - 20) / 3, height: (max(240, width) - 20) / 3 * 1.32
-                            ).clipped()
+                            Image(tool.asset).resizable().scaledToFit().frame(
+                                width: photoWidth, height: photoWidth * 1.32
+                            )
                                 .overlay {
                                     LinearGradient(
                                         colors: [.clear, .black.opacity(0.5)], startPoint: .center, endPoint: .bottom
-                                    ).mask(Image(tool.asset).resizable().scaledToFill())
+                                    ).mask(Image(tool.asset).resizable().scaledToFit())
                                 }
                                 .overlay(alignment: .bottom) {
                                     Text(tool.title).font(.system(size: 19, weight: .bold)).foregroundStyle(.white)
                                         .padding(.bottom, 15).padding(.horizontal, 3).minimumScaleFactor(0.65)
                                         .lineLimit(1)
-                                }.clipShape(RoundedRectangle(cornerRadius: 17)).rotationEffect(
+                                }.rotationEffect(
                                     .degrees(tool == .collage ? -3 : tool == .filters ? 3 : 0))
+                                .frame(width: cardWidth, height: photoWidth * 1.32 + 12)
                         }.buttonStyle(.plain).accessibilityIdentifier("KadrioHomeTool-" + tool.rawValue).id(tool)
                     }
                 }.scrollTargetLayout().padding(.vertical, 10)
@@ -237,7 +240,7 @@ struct KadrioHomeView: View {
             .accessibilityIdentifier("KadrioSourceCancel")
             .padding(.horizontal, 24).padding(.bottom, 12).background(.white)
         }
-        .presentationDetents([.height(330)]).presentationDragIndicator(.visible).presentationCornerRadius(27)
+        .presentationDetents([.height(270)]).presentationDragIndicator(.visible).presentationCornerRadius(27)
     }
 
     private func sourceButton(title: String, subtitle: String, symbol: String, action: @escaping () -> Void)

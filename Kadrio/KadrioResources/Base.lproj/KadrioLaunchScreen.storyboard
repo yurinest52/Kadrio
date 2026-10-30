@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="23501" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="KadrioLaunchController">
+    <device id="retina6_12" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="23501"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <scenes>
+        <scene sceneID="KadrioLaunchScene">
+            <objects>
+                <viewController id="KadrioLaunchController" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="KadrioLaunchView">
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="KadrioLaunchComposition">
+                                <rect key="frame" x="0" y="326.5" width="393" height="225"/>
+                                <subviews>
+                                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleToFill" image="KadrioSplashLogo" translatesAutoresizingMaskIntoConstraints="NO" id="KadrioLaunchLogo">
+                                        <rect key="frame" x="148.5" y="33" width="96" height="96"/>
+                                        <constraints>
+                                            <constraint firstAttribute="width" constant="96" id="KadrioLogoWidth"/>
+                                            <constraint firstAttribute="height" constant="96" id="KadrioLogoHeight"/>
+                                        </constraints>
+                                    </imageView>
+                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" text="Photo Editor" textAlignment="center" translatesAutoresizingMaskIntoConstraints="NO" id="KadrioLaunchTitle">
+                                        <rect key="frame" x="16" y="170" width="361" height="30"/>
+                                        <fontDescription key="fontDescription" type="boldSystem" pointSize="25"/>
+                                        <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                    </label>
+                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" text="Collage · Crop · Filters · Frames" textAlignment="center" translatesAutoresizingMaskIntoConstraints="NO" id="KadrioLaunchSubtitle">
+                                        <rect key="frame" x="16" y="209" width="361" height="16"/>
+                                        <fontDescription key="fontDescription" type="system" pointSize="13"/>
+                                        <color key="textColor" white="0.53" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                    </label>
+                                </subviews>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="225" id="KadrioCompositionHeight"/>
+                                    <constraint firstItem="KadrioLaunchTitle" firstAttribute="top" secondItem="KadrioLaunchComposition" secondAttribute="top" constant="170" id="KadrioTitleTop"/>
+                                    <constraint firstItem="KadrioLaunchTitle" firstAttribute="leading" secondItem="KadrioLaunchComposition" secondAttribute="leading" constant="16" id="KadrioTitleLeading"/>
+                                    <constraint firstAttribute="trailing" secondItem="KadrioLaunchTitle" secondAttribute="trailing" constant="16" id="KadrioTitleTrailing"/>
+                                    <constraint firstItem="KadrioLaunchTitle" firstAttribute="height" constant="30" id="KadrioTitleHeight"/>
+                                    <constraint firstItem="KadrioLaunchSubtitle" firstAttribute="top" secondItem="KadrioLaunchTitle" secondAttribute="bottom" constant="9" id="KadrioSubtitleTop"/>
+                                    <constraint firstItem="KadrioLaunchSubtitle" firstAttribute="leading" secondItem="KadrioLaunchComposition" secondAttribute="leading" constant="16" id="KadrioSubtitleLeading"/>
+                                    <constraint firstAttribute="trailing" secondItem="KadrioLaunchSubtitle" secondAttribute="trailing" constant="16" id="KadrioSubtitleTrailing"/>
+                                    <constraint firstItem="KadrioLaunchSubtitle" firstAttribute="height" constant="16" id="KadrioSubtitleHeight"/>
+                                    <constraint firstItem="KadrioLaunchLogo" firstAttribute="centerX" secondItem="KadrioLaunchComposition" secondAttribute="centerX" id="KadrioLogoCenterX"/>
+                                    <constraint firstItem="KadrioLaunchLogo" firstAttribute="top" secondItem="KadrioLaunchComposition" secondAttribute="top" constant="33" id="KadrioLogoTop"/>
+                                </constraints>
+                            </view>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="KadrioLaunchSafeArea"/>
+                        <color key="backgroundColor" red="0.95" green="0.95" blue="0.96" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <constraints>
+                            <constraint firstItem="KadrioLaunchComposition" firstAttribute="centerX" secondItem="KadrioLaunchSafeArea" secondAttribute="centerX" id="KadrioCompositionCenterX"/>
+                            <constraint firstItem="KadrioLaunchComposition" firstAttribute="centerY" secondItem="KadrioLaunchSafeArea" secondAttribute="centerY" id="KadrioCompositionCenterY"/>
+                            <constraint firstItem="KadrioLaunchComposition" firstAttribute="width" secondItem="KadrioLaunchSafeArea" secondAttribute="width" id="KadrioCompositionWidth"/>
+                        </constraints>
+                    </view>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="KadrioLaunchFirstResponder" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+        </scene>
+    </scenes>
+    <resources>
+        <image name="KadrioSplashLogo" width="96" height="96"/>
+    </resources>
+</document>

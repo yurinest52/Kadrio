@@ -169,15 +169,68 @@ struct KadrioCropRatioIcon: View {
     }
 }
 
+private struct KadrioScreenMotion {
+    var opacity: Double = 0
+    var scale: CGFloat = 0.978
+    var offset: CGFloat = 18
+    var blur: CGFloat = 3
+}
+
 struct KadrioScreenEntrance: ViewModifier {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var appeared = false
+
+    func body(content: Content) -> some View {
+        Group {
+            if reduceMotion {
+                content.opacity(appeared ? 1 : 0)
+                    .animation(.easeOut(duration: 0.18), value: appeared)
+            } else {
+                content.keyframeAnimator(initialValue: KadrioScreenMotion(), trigger: appeared) { view, motion in
+                    view
+                        .opacity(motion.opacity)
+                        .scaleEffect(motion.scale, anchor: .center)
+                        .offset(y: motion.offset)
+                        .blur(radius: motion.blur)
+                } keyframes: { _ in
+                    KeyframeTrack(\.opacity) {
+                        CubicKeyframe(1, duration: 0.24)
+                    }
+                    KeyframeTrack(\.scale) {
+                        CubicKeyframe(1.003, duration: 0.36)
+                        CubicKeyframe(1, duration: 0.18)
+                    }
+                    KeyframeTrack(\.offset) {
+                        CubicKeyframe(2, duration: 0.28)
+                        CubicKeyframe(0, duration: 0.26)
+                    }
+                    KeyframeTrack(\.blur) {
+                        CubicKeyframe(0, duration: 0.3)
+                    }
+                }
+            }
+        }
+        .onAppear { appeared = true }
+    }
+}
+
+private struct KadrioScreenDeparture: ViewModifier {
+    let progress: CGFloat
     func body(content: Content) -> some View {
         content
-            .opacity(appeared ? 1 : 0)
-            .offset(y: appeared || reduceMotion ? 0 : 8)
-            .onAppear {
-                withAnimation(.easeOut(duration: reduceMotion ? 0.15 : 0.3)) { appeared = true }
-            }
+            .opacity(1 - Double(progress))
+            .scaleEffect(1 - progress * 0.015)
+            .offset(y: -progress * 12)
+            .blur(radius: progress * 2)
+    }
+}
+
+extension AnyTransition {
+    static func kadrioScreen(reduceMotion: Bool) -> AnyTransition {
+        .asymmetric(
+            insertion: .identity,
+            removal: reduceMotion ? .opacity : .modifier(
+                active: KadrioScreenDeparture(progress: 1),
+                identity: KadrioScreenDeparture(progress: 0)))
     }
 }

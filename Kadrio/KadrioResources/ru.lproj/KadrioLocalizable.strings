@@ -115,3 +115,6 @@
 "color.recent" = "Недавние";
 "color.saturation" = "Насыщенность";
 "color.brightness" = "Яркость";
+
+"collage.limit.title" = "Максимум фотографий";
+"collage.limit.message" = "В коллаже уже выбрано максимальное количество — 4 фотографии.";
