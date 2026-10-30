@@ -70,6 +70,7 @@ final class KadrioUserJourneyTests: XCTestCase {
         capture(app, "KadrioFramePalette")
         app.buttons["Done"].tap()
         capture(app, "KadrioFrames")
+        waitUntilPreviewReady(app)
         app.buttons["KadrioEditorSave"].tap()
         let permission = addUIInterruptionMonitor(withDescription: "Kadrio Photos permission") { alert in
             if alert.buttons["Allow Access to All Photos"].exists { alert.buttons["Allow Access to All Photos"].tap(); return true }
@@ -99,10 +100,13 @@ final class KadrioUserJourneyTests: XCTestCase {
         let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.3))
         start.press(forDuration: 0.1, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.4, dy: 0.35)))
         capture(app, "KadrioCollage")
+        waitUntilPreviewReady(app)
         app.buttons["KadrioEditorSave"].tap()
         XCTAssertTrue(app.staticTexts["1 tokens left"].waitForExistence(timeout: 15))
+        waitUntilPreviewReady(app)
         app.buttons["KadrioEditorSave"].tap()
         XCTAssertTrue(app.staticTexts["0 tokens left"].waitForExistence(timeout: 15))
+        waitUntilPreviewReady(app)
         app.buttons["KadrioEditorSave"].tap()
         XCTAssertTrue(app.buttons["KadrioPaywallGetTokens"].waitForExistence(timeout: 5))
         capture(app, "KadrioNoTokensPaywall")
@@ -112,10 +116,12 @@ final class KadrioUserJourneyTests: XCTestCase {
         XCTAssertTrue(app.buttons["0 tokens left"].exists)
         openSinglePhotoEditor(app)
         app.buttons["Warm"].tap()
+        waitUntilPreviewReady(app)
         app.buttons["KadrioEditorSave"].tap()
         XCTAssertTrue(app.buttons["KadrioPaywallGetTokens"].waitForExistence(timeout: 5))
         app.buttons["KadrioPaywallGetTokens"].tap()
         XCTAssertTrue(app.buttons["KadrioEditorSave"].waitForExistence(timeout: 5))
+        waitUntilPreviewReady(app)
         app.buttons["KadrioEditorSave"].tap()
         XCTAssertTrue(app.staticTexts["2 tokens left"].waitForExistence(timeout: 15))
         app.buttons["KadrioEditorClose"].tap()
@@ -202,6 +208,13 @@ final class KadrioUserJourneyTests: XCTestCase {
         XCTAssertTrue(app.buttons["KadrioEditorSave"].waitForExistence(timeout: 10))
     }
 
+    @MainActor private func waitUntilPreviewReady(_ app: XCUIApplication) {
+        let save = app.buttons["KadrioEditorSave"]
+        XCTAssertTrue(save.waitForExistence(timeout: 10))
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: save)
+        XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 15), .completed)
+    }
+
     @MainActor private func waitUntilHittable(_ element: XCUIElement) {
         XCTAssertTrue(element.waitForExistence(timeout: 3))
         let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: element)
@@ -209,6 +222,7 @@ final class KadrioUserJourneyTests: XCTestCase {
     }
 
     @MainActor private func capture(_ app: XCUIApplication, _ name: String) {
+        if app.buttons["KadrioEditorSave"].exists && !app.buttons["KadrioPaywallClose"].exists { waitUntilPreviewReady(app) }
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = name
         attachment.lifetime = .keepAlways

@@ -77,7 +77,7 @@ final class KadrioEditorModel: ObservableObject {
         previewTask?.cancel()
         let sources = sources
         let state = state
-        rendering = preview == nil
+        rendering = true
         previewTask = Task {
             do {
                 try await Task.sleep(for: .milliseconds(35))

@@ -64,8 +64,12 @@ struct KadrioEditorView: View {
             Button { model.redo() } label: { Image(systemName: "arrow.uturn.forward").frame(width: 42, height: 44) }.disabled(model.redoStates.isEmpty).accessibilityLabel(kadrioText("redo"))
             Spacer()
             Button { save() } label: {
-                Text(kadrioText("save")).font(.system(size: 14, weight: .semibold)).foregroundStyle(.white).padding(.horizontal, 20).frame(height: 32).background(.black, in: Capsule()).frame(minHeight: 44)
-            }.accessibilityIdentifier("KadrioEditorSave").disabled(app.saving || importing || model.preview == nil)
+                ZStack {
+                    Text(kadrioText("save")).opacity(model.rendering ? 0 : 1)
+                    if model.rendering { ProgressView().tint(.white).accessibilityHidden(true) }
+                }
+                .font(.system(size: 14, weight: .semibold)).foregroundStyle(.white).padding(.horizontal, 20).frame(height: 32).background(.black, in: Capsule()).frame(minHeight: 44)
+            }.accessibilityLabel(kadrioText("save")).accessibilityIdentifier("KadrioEditorSave").disabled(app.saving || importing || model.preview == nil || model.rendering)
         }.padding(.horizontal, 16).disabled(app.saving)
     }
 
