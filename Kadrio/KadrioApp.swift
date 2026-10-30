@@ -12,6 +12,7 @@ struct KadrioApp: App {
     var body: some Scene {
         WindowGroup {
             KadrioRootView().environmentObject(app).preferredColorScheme(.light).tint(.black)
+                .buttonStyle(KadrioPressButtonStyle())
         }
     }
 }

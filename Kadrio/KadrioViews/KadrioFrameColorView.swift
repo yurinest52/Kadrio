@@ -8,13 +8,17 @@ struct KadrioFrameColorView: View {
     @State private var brightness: Double = 0.9
     @State private var hex = ""
     @State private var selectedTab = 1
+    @State private var opacityText = "100"
+    @State private var inputFrame = CGRect.zero
+    @FocusState private var focusedField: KadrioColorField?
+    private enum KadrioColorField { case hex, opacity }
     static let presets = [
         KadrioColor(red: 0.06, green: 0.06, blue: 0.06), KadrioColor(red: 242.0 / 255, green: 242.0 / 255, blue: 244.0 / 255), KadrioColor(red: 0.94, green: 0.4, blue: 0.35),
         KadrioColor(red: 1, green: 0.77, blue: 0.28), KadrioColor(red: 0.4, green: 0.72, blue: 0.65),
         KadrioColor(red: 0.31, green: 0.6, blue: 0.88), KadrioColor(red: 0.84, green: 0.32, blue: 0.57),
     ]
 
-    private var selectedColor: Color { Color(red: color.red, green: color.green, blue: color.blue) }
+    private var selectedColor: Color { Color(red: color.red, green: color.green, blue: color.blue).opacity(color.alpha) }
 
     var body: some View {
         ScrollView {
@@ -35,7 +39,7 @@ struct KadrioFrameColorView: View {
                                 .frame(maxWidth: .infinity).frame(height: 30)
                                 .foregroundStyle(selectedTab == index ? .white : Color.kadrioSecondary)
                                 .background(selectedTab == index ? Color.black : .clear, in: RoundedRectangle(cornerRadius: 6))
-                        }.buttonStyle(.plain)
+                        }.buttonStyle(KadrioPressButtonStyle())
                     }
                 }.padding(3).background(Color.kadrioBackground, in: RoundedRectangle(cornerRadius: 7))
                 Group {
@@ -52,14 +56,27 @@ struct KadrioFrameColorView: View {
                         TextField(kadrioText("hex.placeholder"), text: $hex)
                             .font(.system(size: 13, weight: .medium, design: .monospaced))
                             .textInputAutocapitalization(.characters).autocorrectionDisabled()
-                            .submitLabel(.done).onSubmit { applyHex() }
+                            .focused($focusedField, equals: .hex)
+                            .submitLabel(.done).onSubmit { finishEditing() }
                             .accessibilityLabel(kadrioText("hexColor"))
                     }.padding(.horizontal, 12).frame(height: 40)
                         .background(Color.kadrioBackground, in: RoundedRectangle(cornerRadius: 9))
-                    Text(kadrioText("color.opacity")).font(.system(size: 13, weight: .medium))
-                        .frame(width: 88, height: 40)
+                    HStack(spacing: 1) {
+                        TextField("100", text: $opacityText)
+                            .keyboardType(.numberPad).multilineTextAlignment(.trailing)
+                            .focused($focusedField, equals: .opacity)
+                            .accessibilityLabel(kadrioText("color.opacity.label"))
+                            .onChange(of: opacityText) { _, text in
+                                if let value = Int(text), (0...100).contains(value) { color.alpha = Double(value) / 100 }
+                            }
+                        Text("%")
+                    }.font(.system(size: 13, weight: .medium))
+                        .padding(.horizontal, 14).frame(width: 88, height: 40)
                         .background(Color.kadrioBackground, in: RoundedRectangle(cornerRadius: 9))
                 }
+                .background(GeometryReader { geometry in
+                    Color.clear.preference(key: KadrioColorInputFrame.self, value: geometry.frame(in: .named("KadrioPalette")))
+                })
                 VStack(alignment: .leading, spacing: 8) {
                     Text(kadrioText("color.recent")).font(.system(size: 11)).foregroundStyle(Color.kadrioSecondary)
                     HStack(spacing: 12) {
@@ -72,25 +89,34 @@ struct KadrioFrameColorView: View {
                                 Circle().fill(Color(red: preset.red, green: preset.green, blue: preset.blue))
                                     .frame(width: 24, height: 24)
                                     .overlay(Circle().stroke(color.hex == preset.hex ? .black : .clear, lineWidth: 2))
-                            }.buttonStyle(.plain).accessibilityLabel(preset.hex)
+                            }.buttonStyle(KadrioPressButtonStyle()).accessibilityLabel(preset.hex)
                         }
                         Spacer(minLength: 0)
                     }
                 }.frame(maxWidth: .infinity, alignment: .leading)
             }.padding(.horizontal, 22).padding(.top, 20).padding(.bottom, 8)
         }
+        .coordinateSpace(name: "KadrioPalette")
+        .onPreferenceChange(KadrioColorInputFrame.self) { inputFrame = $0 }
+        .simultaneousGesture(SpatialTapGesture().onEnded { value in
+            if !inputFrame.contains(value.location) { finishEditing() }
+        })
+        .onChange(of: focusedField) { previous, _ in
+            if previous == .hex { applyHex() }
+            if previous == .opacity { applyOpacity() }
+        }
         .background(.white)
         .scrollIndicators(.hidden)
         .scrollDismissesKeyboard(.interactively)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             Button {
-                applyHex()
+                finishEditing()
                 dismiss()
             } label: {
                 Text(kadrioText("done")).font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(.white).frame(maxWidth: .infinity).frame(height: 46)
                     .background(.black, in: Capsule())
-            }.buttonStyle(.plain).accessibilityIdentifier("KadrioFrameColorDone")
+            }.buttonStyle(KadrioPressButtonStyle()).accessibilityIdentifier("KadrioFrameColorDone")
                 .padding(.horizontal, 22).padding(.top, 6).padding(.bottom, 12).background(.white)
         }
         .presentationDetents([.height(500), .large]).presentationDragIndicator(.visible)
@@ -154,10 +180,10 @@ struct KadrioFrameColorView: View {
                                 var b: CGFloat = 0
                                 var a: CGFloat = 0
                                 UIColor(sample).getRed(&r, green: &g, blue: &b, alpha: &a)
-                                color = KadrioColor(red: r, green: g, blue: b)
+                                color = KadrioColor(red: r, green: g, blue: b, alpha: color.alpha)
                                 sync()
                             } label: { sample.frame(maxWidth: .infinity, maxHeight: .infinity) }
-                                .buttonStyle(.plain)
+                                .buttonStyle(KadrioPressButtonStyle())
                         }
                     }
                 }
@@ -194,6 +220,7 @@ struct KadrioFrameColorView: View {
         saturation = s
         brightness = b
         hex = color.hex
+        opacityText = String(Int((color.alpha * 100).rounded()))
     }
 
     private func updateColor() {
@@ -203,8 +230,21 @@ struct KadrioFrameColorView: View {
         var a: CGFloat = 0
         UIColor(hue: hue, saturation: saturation, brightness: brightness, alpha: 1).getRed(
             &r, green: &g, blue: &b, alpha: &a)
-        color = KadrioColor(red: r, green: g, blue: b)
+        color = KadrioColor(red: r, green: g, blue: b, alpha: color.alpha)
         hex = color.hex
+    }
+
+    private func finishEditing() {
+        if focusedField == .hex { applyHex() }
+        if focusedField == .opacity { applyOpacity() }
+        focusedField = nil
+    }
+
+    private func applyOpacity() {
+        let value = Int(opacityText.replacingOccurrences(of: "%", with: "")) ?? Int(color.alpha * 100)
+        let percentage = min(100, max(0, value))
+        color.alpha = Double(percentage) / 100
+        opacityText = String(percentage)
     }
 
     private func applyHex() {
@@ -215,7 +255,12 @@ struct KadrioFrameColorView: View {
         }
         color = KadrioColor(
             red: Double((number >> 16) & 255) / 255, green: Double((number >> 8) & 255) / 255,
-            blue: Double(number & 255) / 255)
+            blue: Double(number & 255) / 255, alpha: color.alpha)
         sync()
     }
+}
+
+private struct KadrioColorInputFrame: PreferenceKey {
+    static let defaultValue = CGRect.zero
+    static func reduce(value: inout CGRect, nextValue: () -> CGRect) { value = nextValue() }
 }

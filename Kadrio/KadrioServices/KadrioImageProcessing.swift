@@ -89,8 +89,8 @@ actor KadrioImageProcessing {
         let border = min(image.extent.width, image.extent.height) * state.thickness
         let bottom = state.frame == .polaroid ? border * 3.5 : border
         let rect = CGRect(x: 0, y: 0, width: image.extent.width + border * 2, height: image.extent.height + border + bottom).integral
-        let color = CIColor(red: state.frameColor.red, green: state.frameColor.green, blue: state.frameColor.blue)
-        let background = CIImage(color: color).cropped(to: rect)
+        let color = CIColor(red: state.frameColor.red, green: state.frameColor.green, blue: state.frameColor.blue, alpha: state.frameColor.alpha)
+        let background = CIImage(color: color).composited(over: CIImage(color: .white)).cropped(to: rect)
         let contentRect = CGRect(x: border, y: bottom, width: image.extent.width, height: image.extent.height)
         var content = image.transformed(by: CGAffineTransform(translationX: border, y: bottom))
         if state.frame == .rounded {

@@ -48,7 +48,8 @@ struct KadrioPaywallView: View {
     let onClose: () -> Void
     @EnvironmentObject private var app: KadrioAppState
     @State private var processing = false
-    private let legalURL = URL(string: "https://www.freeprivacypolicy.com/live/fa251b16-ff0a-4e3d-aa62-25984710d0cd")!
+    private let privacyURL = URL(string: "https://www.freeprivacypolicy.com/live/fa251b16-ff0a-4e3d-aa62-25984710d0cd")!
+    private let termsURL = URL(string: "https://www.freeprivacypolicy.com/live/6f7d54a2-04d7-4599-b7c9-d8f86b7ff3bf")!
     var body: some View {
         NavigationStack {
             GeometryReader { geometry in
@@ -86,10 +87,10 @@ struct KadrioPaywallView: View {
                             }
                         }.accessibilityIdentifier("KadrioPaywallGetTokens").disabled(processing)
                         HStack(spacing: 8) {
-                            Link(kadrioText("privacy"), destination: legalURL)
+                            Link(kadrioText("privacy"), destination: privacyURL)
                                 .padding(.horizontal, 4).frame(minHeight: 44)
                             Text("·")
-                            Link(kadrioText("terms"), destination: legalURL)
+                            Link(kadrioText("terms"), destination: termsURL)
                                 .padding(.horizontal, 4).frame(minHeight: 44)
                         }.font(.system(size: 11)).foregroundStyle(Color.kadrioSecondary).padding(.bottom, 15)
                     }.padding(.horizontal, 24).padding(.top, 0).frame(minHeight: geometry.size.height, alignment: .top)

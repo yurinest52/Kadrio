@@ -13,7 +13,6 @@ struct KadrioHomeView: View {
     @State private var showLibrary = false
     @State private var showCamera = false
     @State private var settings = false
-    @State private var returnHomeAfterPaywall = false
     @State private var loading = false
     @State private var selectedTool: KadrioTool = .filters
     @State private var carouselTool: KadrioTool? = .collage
@@ -58,7 +57,7 @@ struct KadrioHomeView: View {
                             Text(kadrioText("works.emptyMessage")).font(.system(size: 12)).foregroundStyle(
                                 Color.kadrioSecondary
                             ).multilineTextAlignment(.center).frame(maxWidth: 210)
-                        }.frame(maxWidth: .infinity, maxHeight: .infinity).padding(.bottom, 70)
+                        }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom).padding(.bottom, 100)
                     } else {
                         ScrollView {
                             LazyVGrid(
@@ -72,7 +71,7 @@ struct KadrioHomeView: View {
                                         KadrioFileImage(url: app.workURL(work, thumbnail: true)).aspectRatio(
                                             1, contentMode: .fit
                                         ).clipShape(RoundedRectangle(cornerRadius: 15))
-                                    }.buttonStyle(.plain).accessibilityLabel(kadrioText("works.open"))
+                                    }.buttonStyle(KadrioPressButtonStyle()).accessibilityLabel(kadrioText("works.open"))
                                         .contextMenu {
                                             Button {
                                                 saveExisting(work)
@@ -147,16 +146,9 @@ struct KadrioHomeView: View {
         .fullScreenCover(item: $editor) { request in KadrioEditorView(request: request) }
         .sheet(item: $viewedWork) { KadrioWorkPreviewView(work: $0) }
         .fullScreenCover(
-            isPresented: Binding(get: { app.showPaywall && editor == nil }, set: { app.showPaywall = $0 }),
-            onDismiss: {
-                if returnHomeAfterPaywall {
-                    settings = false
-                    returnHomeAfterPaywall = false
-                }
-            }
+            isPresented: Binding(get: { app.showPaywall && editor == nil }, set: { app.showPaywall = $0 })
         ) {
             KadrioPaywallView {
-                returnHomeAfterPaywall = true
                 app.showPaywall = false
             }
         }
@@ -175,10 +167,10 @@ struct KadrioHomeView: View {
 
     private func carousel(width: CGFloat) -> some View {
         let cardWidth = max(1, (max(240, width) - 64) / 3)
-        let photoWidth = max(1, cardWidth - 10)
+        let photoWidth = cardWidth + 12
         return VStack(spacing: 13) {
             ScrollView(.horizontal) {
-                HStack(spacing: 0) {
+                HStack(spacing: -6) {
                     ForEach(KadrioTool.allCases) { tool in
                         Button {
                             selectedTool = tool
@@ -199,7 +191,8 @@ struct KadrioHomeView: View {
                                 }.rotationEffect(
                                     .degrees(tool == .collage ? -3 : tool == .filters ? 3 : 0))
                                 .frame(width: cardWidth, height: photoWidth * 1.32 + 12)
-                        }.buttonStyle(.plain).accessibilityIdentifier("KadrioHomeTool-" + tool.rawValue).id(tool)
+                        }.buttonStyle(KadrioPressButtonStyle()).zIndex(Double(4 - (KadrioTool.allCases.firstIndex(of: tool) ?? 0)))
+                            .accessibilityIdentifier("KadrioHomeTool-" + tool.rawValue).id(tool)
                     }
                 }.scrollTargetLayout().padding(.vertical, 10)
             }.contentMargins(.horizontal, 32, for: .scrollContent)
@@ -230,6 +223,7 @@ struct KadrioHomeView: View {
                 }
             }.padding(.horizontal, 24).padding(.top, 24).padding(.bottom, 12)
         }
+        .background(Color.white)
         .scrollIndicators(.hidden)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             Button(kadrioText("cancel")) {
@@ -240,6 +234,7 @@ struct KadrioHomeView: View {
             .accessibilityIdentifier("KadrioSourceCancel")
             .padding(.horizontal, 24).padding(.bottom, 12).background(.white)
         }
+        .presentationBackground(Color.white)
         .presentationDetents([.height(270)]).presentationDragIndicator(.visible).presentationCornerRadius(27)
     }
 
@@ -254,7 +249,7 @@ struct KadrioHomeView: View {
                 Text(kadrioText(subtitle)).font(.system(size: 10)).foregroundStyle(Color.kadrioSecondary)
             }.frame(maxWidth: .infinity, alignment: .leading).padding(14).background(
                 Color.kadrioBackground, in: RoundedRectangle(cornerRadius: 18))
-        }.buttonStyle(.plain).accessibilityIdentifier("KadrioSource-" + title)
+        }.buttonStyle(KadrioPressButtonStyle()).accessibilityIdentifier("KadrioSource-" + title)
     }
 
     private func openSelectedPhotoSource() {

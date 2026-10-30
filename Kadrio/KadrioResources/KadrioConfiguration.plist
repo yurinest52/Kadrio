@@ -1,8 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0"><dict>
-<key>KadrioPrivacyURL</key><string>https://www.freeprivacypolicy.com/live/fa251b16-ff0a-4e3d-aa62-25984710d0cd</string>
-<key>KadrioTermsURL</key><string>https://www.freeprivacypolicy.com/live/fa251b16-ff0a-4e3d-aa62-25984710d0cd</string>
-<key>KadrioSupportURL</key><string>https://www.freeprivacypolicy.com/live/fa251b16-ff0a-4e3d-aa62-25984710d0cd</string>
-<key>KadrioSupportEmail</key><string></string>
-</dict></plist>
+<plist version="1.0">
+<dict>
+	<key>KadrioPrivacyURL</key>
+	<string>https://www.freeprivacypolicy.com/live/fa251b16-ff0a-4e3d-aa62-25984710d0cd</string>
+	<key>KadrioTermsURL</key>
+	<string>https://www.freeprivacypolicy.com/live/6f7d54a2-04d7-4599-b7c9-d8f86b7ff3bf</string>
+	<key>KadrioSupportURL</key>
+	<string>https://www.freeprivacypolicy.com/live/fa251b16-ff0a-4e3d-aa62-25984710d0cd</string>
+	<key>KadrioSupportEmail</key>
+	<string></string>
+</dict>
+</plist>

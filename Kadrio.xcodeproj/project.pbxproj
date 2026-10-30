@@ -29,9 +29,22 @@
 		CAD000000000000000000066 /* KadrioUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = KadrioUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		3072AB303094FCC400943F79 /* Exceptions for "Kadrio" folder in "Kadrio" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 30B784B03094BBE600612376 /* Kadrio */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		30B784B33094BBE600612376 /* Kadrio */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				3072AB303094FCC400943F79 /* Exceptions for "Kadrio" folder in "Kadrio" target */,
+			);
 			path = Kadrio;
 			sourceTree = "<group>";
 		};
@@ -367,12 +380,12 @@
 				DEVELOPMENT_TEAM = W5GN64PCQ2;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Kadrio/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Kadrio;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Take photos to edit in Kadrio.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Save your edited photos to your photo library.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = NO;
 				INFOPLIST_KEY_UILaunchStoryboardName = KadrioLaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
@@ -408,12 +421,12 @@
 				DEVELOPMENT_TEAM = W5GN64PCQ2;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Kadrio/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Kadrio;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Take photos to edit in Kadrio.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Save your edited photos to your photo library.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = NO;
 				INFOPLIST_KEY_UILaunchStoryboardName = KadrioLaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";

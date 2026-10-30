@@ -14,7 +14,7 @@ struct KadrioPrimaryButton: View {
         Button(action: action) {
             Text(title).font(.system(size: 15, weight: .semibold)).frame(maxWidth: .infinity).frame(height: 54)
                 .foregroundStyle(.white).background(.black, in: Capsule())
-        }.buttonStyle(.plain)
+        }.buttonStyle(KadrioPressButtonStyle())
     }
 }
 
@@ -26,7 +26,7 @@ struct KadrioCircleButton: View {
         Button(action: action) {
             Image(systemName: symbol).font(.system(size: 17, weight: .medium))
                 .frame(width: 44, height: 44).background(.white, in: Circle()).contentShape(Circle())
-        }.buttonStyle(.plain).accessibilityLabel(label)
+        }.buttonStyle(KadrioPressButtonStyle()).accessibilityLabel(label)
     }
 }
 
@@ -92,6 +92,7 @@ struct KadrioAccessView: View {
                     .multilineTextAlignment(.center)
             }.padding(24)
         }
+        .background(Color.white)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             VStack(spacing: 4) {
                 KadrioPrimaryButton(title: kadrioText("openSettings")) {
@@ -102,6 +103,7 @@ struct KadrioAccessView: View {
                 ).frame(height: 44)
             }.padding(.horizontal, 24).padding(.top, 8).padding(.bottom, 12).background(.white)
         }
+        .presentationBackground(Color.white)
         .presentationDetents([.height(400), .large]).presentationDragIndicator(.visible)
     }
 }
@@ -232,5 +234,22 @@ extension AnyTransition {
             removal: reduceMotion ? .opacity : .modifier(
                 active: KadrioScreenDeparture(progress: 1),
                 identity: KadrioScreenDeparture(progress: 0)))
+    }
+}
+
+struct KadrioPressButtonStyle: ButtonStyle {
+    var pressedScale: CGFloat = 0.97
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        let pressed = configuration.isPressed && isEnabled
+        configuration.label
+            .scaleEffect(pressed && !reduceMotion ? pressedScale : 1)
+            .opacity(pressed ? 0.76 : 1)
+            .animation(
+                reduceMotion ? .easeOut(duration: 0.12)
+                    : pressed ? .easeOut(duration: 0.1) : .spring(response: 0.28, dampingFraction: 0.82),
+                value: pressed)
     }
 }

@@ -7,7 +7,6 @@ struct KadrioEditorView: View {
     @StateObject private var model: KadrioEditorModel
     @State private var discard = false
     @State private var showPhotoLimit = false
-    @State private var returnHomeAfterPaywall = false
     @State private var comparing = false
     @State private var showColor = false
     @State private var showPicker = false
@@ -53,14 +52,8 @@ struct KadrioEditorView: View {
                         model.updatePreview()
                     }))
         }
-        .fullScreenCover(
-            isPresented: $app.showPaywall,
-            onDismiss: {
-                if returnHomeAfterPaywall { closeEditor() }
-            }
-        ) {
+        .fullScreenCover(isPresented: $app.showPaywall) {
             KadrioPaywallView {
-                returnHomeAfterPaywall = true
                 app.showPaywall = false
             }
         }
@@ -296,7 +289,7 @@ struct KadrioEditorView: View {
                                     model.state.layout == layout.rawValue ? .black : .clear, lineWidth: 1.5)
                             }
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(KadrioPressButtonStyle())
                     .accessibilityLabel(kadrioFormat("layout.number", layout.rawValue + 1))
                     .accessibilityHint(kadrioText("collage.gesture"))
                 }
@@ -338,7 +331,7 @@ struct KadrioEditorView: View {
                             Text(ratio.title).font(.system(size: 10)).foregroundStyle(
                                 model.state.ratio == ratio ? .black : .gray)
                         }.frame(maxWidth: .infinity)
-                    }.buttonStyle(.plain)
+                    }.buttonStyle(KadrioPressButtonStyle())
                 }
             }
             HStack(spacing: 8) {
@@ -364,7 +357,7 @@ struct KadrioEditorView: View {
                 Text(kadrioText(title))
             }.font(.system(size: 12, weight: .medium)).frame(maxWidth: .infinity)
                 .frame(height: 34).background(Color.kadrioBackground, in: Capsule())
-        }.buttonStyle(.plain)
+        }.buttonStyle(KadrioPressButtonStyle())
     }
 
     private var filterControls: some View {
@@ -387,7 +380,7 @@ struct KadrioEditorView: View {
                                 model.state.filter == filter ? .black : .gray
                             ).lineLimit(1).minimumScaleFactor(0.7)
                         }.frame(maxWidth: .infinity)
-                    }.buttonStyle(.plain)
+                    }.buttonStyle(KadrioPressButtonStyle())
                 }
             }
             parameterSlider("intensity", value: $model.state.intensity, range: 0...1)
@@ -416,7 +409,7 @@ struct KadrioEditorView: View {
                                 Text(frame.title).font(.system(size: 9)).foregroundStyle(
                                     model.state.frame == frame ? .black : .gray)
                             }
-                        }.buttonStyle(.plain)
+                        }.buttonStyle(KadrioPressButtonStyle())
                     }
                 }
             }.scrollIndicators(.hidden)
@@ -493,7 +486,7 @@ struct KadrioEditorView: View {
                             .offset(y: model.tool == tool ? -5 : 0)
                         Text(tool.title).font(.system(size: 10)).foregroundStyle(model.tool == tool ? .black : .gray)
                     }.frame(maxWidth: .infinity)
-                }.buttonStyle(.plain).accessibilityIdentifier("KadrioEditorTool-" + tool.rawValue)
+                }.buttonStyle(KadrioPressButtonStyle()).accessibilityIdentifier("KadrioEditorTool-" + tool.rawValue)
             }
         }.padding(.horizontal, 16).padding(.bottom, 8).background(.white).disabled(app.saving || importing)
     }

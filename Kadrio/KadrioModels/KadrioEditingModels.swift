@@ -87,6 +87,25 @@ struct KadrioColor: Codable, Equatable, Sendable {
     var red: Double = 1
     var green: Double = 1
     var blue: Double = 1
+    var alpha: Double = 1
+
+    init(red: Double = 1, green: Double = 1, blue: Double = 1, alpha: Double = 1) {
+        self.red = red
+        self.green = green
+        self.blue = blue
+        self.alpha = alpha
+    }
+
+    private enum CodingKeys: String, CodingKey { case red, green, blue, alpha }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        red = try values.decode(Double.self, forKey: .red)
+        green = try values.decode(Double.self, forKey: .green)
+        blue = try values.decode(Double.self, forKey: .blue)
+        alpha = min(1, max(0, try values.decodeIfPresent(Double.self, forKey: .alpha) ?? 1))
+    }
+
     var hex: String {
         String(format: "#%02X%02X%02X", Int(red * 255), Int(green * 255), Int(blue * 255))
     }

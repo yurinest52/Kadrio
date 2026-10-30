@@ -118,3 +118,5 @@
 
 "collage.limit.title" = "Maximum photos added";
 "collage.limit.message" = "Your collage already has the maximum of 4 photos.";
+
+"color.opacity.label" = "Color opacity";

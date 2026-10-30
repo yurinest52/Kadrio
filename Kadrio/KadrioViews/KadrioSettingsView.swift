@@ -116,10 +116,10 @@ struct KadrioSettingsView: View {
                 }.font(.system(size: 17)).padding(.horizontal, 24).padding(.top, 12).padding(.bottom, 16).frame(
                     maxWidth: .infinity, minHeight: geometry.size.height, alignment: .top)
             }.scrollIndicators(.hidden)
+                .modifier(KadrioScreenEntrance())
         }
-        .background(Color.kadrioBackground)
+        .background(Color.kadrioBackground.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
-        .modifier(KadrioScreenEntrance())
         .alert(kadrioText("clear.title"), isPresented: $confirmClear) {
             Button(kadrioText("cancel"), role: .cancel) {}
             Button(kadrioText("clear"), role: .destructive) { Task { await app.clearHistory() } }
@@ -135,7 +135,7 @@ struct KadrioSettingsView: View {
                 Spacer()
                 Image(systemName: "chevron.right").font(.system(size: 13)).foregroundStyle(.gray.opacity(0.5))
             }.padding(.horizontal, 19).frame(height: 54).contentShape(Rectangle())
-        }.buttonStyle(.plain).accessibilityIdentifier("KadrioSettingsRow-" + key)
+        }.buttonStyle(KadrioPressButtonStyle(pressedScale: 0.985)).accessibilityIdentifier("KadrioSettingsRow-" + key)
     }
 }
 
