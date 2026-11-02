@@ -265,6 +265,12 @@ enum KadrioError: LocalizedError {
 }
 
 struct KadrioGeometry {
+    static let photoZoomRange = 1.0...6.0
+
+    static func clampedZoom(_ zoom: Double) -> Double {
+        min(photoZoomRange.upperBound, max(photoZoomRange.lowerBound, zoom))
+    }
+
     static func collageSize(preview: Bool) -> CGSize {
         CGSize(width: preview ? 1100 : 4000, height: preview ? 1375 : 5000)
     }
@@ -438,7 +444,7 @@ struct KadrioCollageGeometry: Equatable {
 
     func placement(index: Int, sourceSize: CGSize, start: KadrioPlacement, translation: CGSize, magnification: Double, anchor: CGPoint) -> KadrioPlacement {
         let cell = cells[index]
-        let zoom = min(6, max(1, start.zoom * magnification))
+        let zoom = KadrioGeometry.clampedZoom(start.zoom * magnification)
         let zoomScale = zoom / start.zoom
         let initialOrigin = CGPoint.zero.applying(KadrioGeometry.placementTransform(sourceSize, in: cell, placement: start))
         let offset = canvasTranslation(translation)

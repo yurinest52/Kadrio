@@ -32,7 +32,7 @@ actor KadrioWorksStorage {
             photoIdentifier = try values.decodeIfPresent(String.self, forKey: .photoIdentifier)
         }
     }
-    let directory: URL
+    nonisolated let directory: URL
     private var ledger: KadrioLedger?
     private var ledgerURL: URL { directory.appendingPathComponent("KadrioWorksLedger.json") }
     private var pendingURL: URL { directory.appendingPathComponent("KadrioPendingSave.json") }

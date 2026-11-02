@@ -40,11 +40,11 @@ struct KadrioEditorView: View {
                 .toolbar(.hidden, for: .navigationBar)
         }
         .modifier(KadrioScreenEntrance())
-        .disabled(savingRequest || app.saving)
+        .disabled(savingRequest || app.saving || importing)
         .interactiveDismissDisabled(model.dirty || app.saving || savingRequest)
         .sheet(isPresented: $showColor, onDismiss: model.endContinuousEditing) {
             KadrioFrameColorView(
-                color: model.editingBinding(for: \.frameColor))
+                color: model.editingBinding(for: \.frameColor), editingChanged: model.sliderEditingChanged)
         }
         .fullScreenCover(isPresented: $app.showPaywall) {
             KadrioPaywallView {
@@ -133,7 +133,9 @@ struct KadrioEditorView: View {
     private var controls: some View {
         KadrioEditorControls(model: model, isBusy: app.saving || importing,
             onSelectLayout: selectLayout, onAddPhotos: addPhotos, onReplacePhoto: {
-                guard let id = model.selectedCollageSourceID else { return }
+                guard !importing, !showPicker, let id = model.selectedCollageSourceID,
+                      model.activeSources.contains(where: { $0.id == id }) else { return }
+                photoItems = []
                 replacementSourceID = id
                 pendingLayout = nil
                 showPicker = true
@@ -197,6 +199,7 @@ struct KadrioEditorView: View {
     }
 
     private func importMore(_ items: [PhotosPickerItem]) {
+        guard !importing else { return }
         importing = true
         let requestedLayout = pendingLayout
         let replacement = replacementSourceID
@@ -208,7 +211,7 @@ struct KadrioEditorView: View {
                 replacementSourceID = nil
             }
             do {
-                for item in items {
+                for item in items.prefix(replacement == nil ? items.count : 1) {
                     guard let file = try await item.loadTransferable(type: KadrioImportFile.self) else {
                         throw KadrioError.invalidImage
                     }

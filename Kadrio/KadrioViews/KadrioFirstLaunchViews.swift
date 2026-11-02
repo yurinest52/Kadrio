@@ -5,26 +5,28 @@ struct KadrioOnboardingView: View {
     var body: some View {
         NavigationStack {
             GeometryReader { geometry in
-                ScrollView {
-                    VStack(spacing: 0) {
-                        ZStack(alignment: .bottomTrailing) {
-                            Image("KadrioOnboardingPortrait").resizable().scaledToFill().frame(
-                                width: max(1, geometry.size.width - 48),
-                                height: min(max(1, geometry.size.width - 48) * 1.28, geometry.size.height * 0.67)
-                            ).clipped().clipShape(RoundedRectangle(cornerRadius: 25))
-                            Image("KadrioPortraitPreview").resizable().scaledToFill().frame(width: 128, height: 155)
-                                .clipped().clipShape(RoundedRectangle(cornerRadius: 23)).rotationEffect(.degrees(7))
-                                .offset(x: -22, y: 25)
-                        }.padding(.top, 12).padding(.bottom, 18)
-                        Spacer(minLength: 22)
-                        Text(kadrioText("onboarding.title")).font(.system(size: 29, weight: .heavy)).tracking(-0.9)
-                            .multilineTextAlignment(.center).frame(maxWidth: 300).fixedSize(horizontal: false, vertical: true)
-                        Text(kadrioText("onboarding.subtitle")).font(.system(size: 15)).foregroundStyle(
-                            Color.kadrioSecondary
-                        ).multilineTextAlignment(.center).padding(.top, 15)
-                        Spacer(minLength: 20)
-                    }.padding(.horizontal, 24)
-                }.scrollIndicators(.hidden)
+                let contentWidth = max(1, geometry.size.width - 48)
+                let artworkHeight = min(contentWidth * 1.28, geometry.size.height * 0.67, max(1, geometry.size.height - 215))
+                let thumbnailHeight = min(155, artworkHeight * 0.38)
+                VStack(spacing: 0) {
+                    ZStack(alignment: .bottomTrailing) {
+                        Image("KadrioOnboardingPortrait").resizable().scaledToFill().frame(
+                            width: contentWidth,
+                            height: artworkHeight
+                        ).clipped().clipShape(RoundedRectangle(cornerRadius: 25))
+                        Image("KadrioPortraitPreview").resizable().scaledToFill().frame(width: thumbnailHeight * 128 / 155, height: thumbnailHeight)
+                            .clipped().clipShape(RoundedRectangle(cornerRadius: 23)).rotationEffect(.degrees(7))
+                            .offset(x: -22, y: 25)
+                    }.padding(.top, 12).padding(.bottom, 18)
+                    Spacer(minLength: 22)
+                    Text(kadrioText("onboarding.title")).font(.system(size: 29, weight: .heavy)).tracking(-0.9)
+                        .multilineTextAlignment(.center).frame(maxWidth: 300).fixedSize(horizontal: false, vertical: true)
+                    Text(kadrioText("onboarding.subtitle")).font(.system(size: 15)).foregroundStyle(
+                        Color.kadrioSecondary
+                    ).multilineTextAlignment(.center).padding(.top, 15)
+                    Spacer(minLength: 20)
+                }.padding(.horizontal, 24).frame(width: geometry.size.width, height: geometry.size.height)
+
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 KadrioPrimaryButton(title: kadrioText("continue"), action: completion).accessibilityIdentifier(
@@ -50,37 +52,35 @@ struct KadrioPaywallView: View {
             GeometryReader { geometry in
                 let compact = geometry.size.height < 520
                 let contentWidth = max(1, geometry.size.width - 48)
-                let artworkHeight = min(contentWidth * 250 / 342, compact ? max(1, geometry.size.height) * 0.34 : .infinity)
-                ScrollView {
-                    VStack(spacing: compact ? 12 : 18) {
-                        KadrioPaywallArtwork()
-                            .frame(width: artworkHeight * 342 / 250, height: artworkHeight)
-                            .frame(maxWidth: .infinity)
-                        VStack(spacing: 7) {
-                            Text(kadrioText("paywall.title")).font(.system(size: 28, weight: .heavy)).tracking(-0.8)
-                            Text(kadrioText("paywall.subtitle")).font(.system(size: 14)).foregroundStyle(
+                let artworkHeight = min(contentWidth * 250 / 342, compact ? max(0, geometry.size.height - 300) : .infinity)
+                VStack(spacing: compact ? 8 : 18) {
+                    KadrioPaywallArtwork()
+                        .frame(width: artworkHeight * 342 / 250, height: artworkHeight)
+                        .frame(maxWidth: .infinity)
+                    VStack(spacing: 7) {
+                        Text(kadrioText("paywall.title")).font(.system(size: 28, weight: .heavy)).tracking(-0.8)
+                        Text(kadrioText("paywall.subtitle")).font(.system(size: 14)).foregroundStyle(
+                            Color.kadrioSecondary)
+                    }.multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+                    VStack(alignment: .leading, spacing: compact ? 9 : 13) {
+                        ForEach(["paywall.tools", "paywall.resolution", "paywall.share"], id: \.self) { key in
+                            Label(kadrioText(key), systemImage: "checkmark.circle.fill").font(.system(size: 15))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }.padding(.vertical, compact ? 4 : 7)
+                    HStack(spacing: 12) {
+                        Image(systemName: "sparkles").font(.title2)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(kadrioText("paywall.tokens")).font(.system(size: 16, weight: .semibold))
+                            Text(kadrioText("paywall.threeSaves")).font(.system(size: 12)).foregroundStyle(
                                 Color.kadrioSecondary)
-                        }.multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
-                        VStack(alignment: .leading, spacing: 13) {
-                            ForEach(["paywall.tools", "paywall.resolution", "paywall.share"], id: \.self) { key in
-                                Label(kadrioText(key), systemImage: "checkmark.circle.fill").font(.system(size: 15))
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                        }.padding(.vertical, 7)
-                        HStack(spacing: 12) {
-                            Image(systemName: "sparkles").font(.title2)
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(kadrioText("paywall.tokens")).font(.system(size: 16, weight: .semibold))
-                                Text(kadrioText("paywall.threeSaves")).font(.system(size: 12)).foregroundStyle(
-                                    Color.kadrioSecondary)
-                            }.fixedSize(horizontal: false, vertical: true)
-                            Spacer(minLength: 8)
-                            Text(kadrioText("paywall.pricePlaceholder")).font(.system(size: 20, weight: .bold)).fixedSize()
-                        }.padding(16).background(.white, in: RoundedRectangle(cornerRadius: 18)).overlay(
-                            RoundedRectangle(cornerRadius: 18).stroke(.black, lineWidth: 1.5))
-                    }.frame(width: contentWidth).padding(.horizontal, 24).padding(.bottom, 12)
-                        .frame(minHeight: geometry.size.height, alignment: .top)
-                }.scrollIndicators(.hidden)
+                        }.fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 8)
+                        Text(kadrioText("paywall.pricePlaceholder")).font(.system(size: 20, weight: .bold)).fixedSize()
+                    }.padding(16).background(.white, in: RoundedRectangle(cornerRadius: 18)).overlay(
+                        RoundedRectangle(cornerRadius: 18).stroke(.black, lineWidth: 1.5))
+                }.frame(width: contentWidth).padding(.horizontal, 24).padding(.bottom, 12)
+                    .frame(height: geometry.size.height, alignment: .top)
             }
             .background(Color.kadrioBackground)
             .safeAreaInset(edge: .top, spacing: 0) {

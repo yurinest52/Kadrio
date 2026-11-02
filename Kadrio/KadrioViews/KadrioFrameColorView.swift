@@ -2,12 +2,18 @@ import SwiftUI
 
 struct KadrioFrameColorView: View {
     @Binding var color: KadrioColor
+    var editingChanged: (Bool) -> Void = { _ in }
+    @GestureState private var dragging = false
+    private enum PaletteTab: String, CaseIterable, Identifiable {
+        case grid = "color.grid", spectrum, sliders = "color.sliders"
+        var id: String { rawValue }
+    }
     @Environment(\.dismiss) private var dismiss
     @State private var hue: Double = 0.04
     @State private var saturation: Double = 0.6
     @State private var brightness: Double = 0.9
     @State private var hex = ""
-    @State private var selectedTab = 1
+    @State private var selectedTab = PaletteTab.spectrum
     @State private var opacityText = "100"
     @State private var inputFrame = CGRect.zero
     @FocusState private var focusedField: KadrioColorField?
@@ -33,18 +39,18 @@ struct KadrioFrameColorView: View {
                     }.accessibilityLabel(kadrioText("close")).accessibilityIdentifier("KadrioFrameColorClose")
                 }
                 HStack(spacing: 0) {
-                    ForEach(Array(["color.grid", "spectrum", "color.sliders"].enumerated()), id: \.offset) { index, key in
-                        Button { selectedTab = index } label: {
-                            Text(kadrioText(key)).font(.system(size: 12, weight: .medium))
+                    ForEach(PaletteTab.allCases) { tab in
+                        Button { selectedTab = tab } label: {
+                            Text(kadrioText(tab.rawValue)).font(.system(size: 12, weight: .medium))
                                 .frame(maxWidth: .infinity).frame(height: 30)
-                                .foregroundStyle(selectedTab == index ? .white : Color.kadrioSecondary)
-                                .background(selectedTab == index ? Color.black : .clear, in: RoundedRectangle(cornerRadius: 6))
+                                .foregroundStyle(selectedTab == tab ? .white : Color.kadrioSecondary)
+                                .background(selectedTab == tab ? Color.black : .clear, in: RoundedRectangle(cornerRadius: 6))
                         }.buttonStyle(KadrioPressButtonStyle())
                     }
                 }.padding(3).background(Color.kadrioBackground, in: RoundedRectangle(cornerRadius: 7))
                 Group {
-                    if selectedTab == 0 { colorGrid }
-                    else if selectedTab == 1 { spectrum }
+                    if selectedTab == .grid { colorGrid }
+                    else if selectedTab == .spectrum { spectrum }
                     else { colorSliders }
                 }.frame(height: 150)
                 hueTrack
@@ -122,6 +128,8 @@ struct KadrioFrameColorView: View {
         .presentationDetents([.height(500), .large]).presentationDragIndicator(.visible)
         .presentationCornerRadius(26).presentationBackground(.white)
         .onAppear { sync() }
+        .onChange(of: dragging) { _, active in editingChanged(active) }
+        .onDisappear { editingChanged(false) }
     }
 
     private var spectrum: some View {
@@ -134,7 +142,7 @@ struct KadrioFrameColorView: View {
                     .position(x: max(11, min(geometry.size.width - 11, saturation * geometry.size.width)),
                               y: max(11, min(geometry.size.height - 11, (1 - brightness) * geometry.size.height)))
             }.clipShape(RoundedRectangle(cornerRadius: 8)).contentShape(Rectangle())
-                .gesture(DragGesture(minimumDistance: 0).onChanged { value in
+                .gesture(DragGesture(minimumDistance: 0).updating($dragging) { _, active, _ in active = true }.onChanged { value in
                     saturation = min(1, max(0, value.location.x / max(1, geometry.size.width)))
                     brightness = min(1, max(0, 1 - value.location.y / max(1, geometry.size.height)))
                     updateColor()
@@ -152,7 +160,7 @@ struct KadrioFrameColorView: View {
                     .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
                     .offset(x: hue * max(0, geometry.size.width - 20))
             }.frame(height: 22).contentShape(Rectangle())
-                .gesture(DragGesture(minimumDistance: 0).onChanged { value in
+                .gesture(DragGesture(minimumDistance: 0).updating($dragging) { _, active, _ in active = true }.onChanged { value in
                     hue = min(1, max(0, (value.location.x - 10) / max(1, geometry.size.width - 20)))
                     updateColor()
                 })
@@ -196,15 +204,15 @@ struct KadrioFrameColorView: View {
         VStack(spacing: 8) {
             VStack(alignment: .leading, spacing: 0) {
                 Text(kadrioText("hue")).font(.system(size: 11)).foregroundStyle(Color.kadrioSecondary)
-                Slider(value: $hue, in: 0...1).onChange(of: hue) { updateColor() }
+                Slider(value: $hue, in: 0...1, onEditingChanged: editingChanged).onChange(of: hue) { updateColor() }
             }
             VStack(alignment: .leading, spacing: 0) {
                 Text(kadrioText("color.saturation")).font(.system(size: 11)).foregroundStyle(Color.kadrioSecondary)
-                Slider(value: $saturation, in: 0...1).onChange(of: saturation) { updateColor() }
+                Slider(value: $saturation, in: 0...1, onEditingChanged: editingChanged).onChange(of: saturation) { updateColor() }
             }
             VStack(alignment: .leading, spacing: 0) {
                 Text(kadrioText("color.brightness")).font(.system(size: 11)).foregroundStyle(Color.kadrioSecondary)
-                Slider(value: $brightness, in: 0...1).onChange(of: brightness) { updateColor() }
+                Slider(value: $brightness, in: 0...1, onEditingChanged: editingChanged).onChange(of: brightness) { updateColor() }
             }
         }.tint(.black)
     }

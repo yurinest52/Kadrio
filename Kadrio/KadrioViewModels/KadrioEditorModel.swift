@@ -28,7 +28,7 @@ final class KadrioEditorModel: ObservableObject {
     }
 
     @Published var selectedCollageSourceID: UUID?
-    private var dividerGesture: (divider: KadrioCollageDivider, geometry: KadrioCollageGeometry, split: KadrioCollageSplit, spacing: Double, layout: Int)?
+    private var dividerGesture: (divider: KadrioCollageDivider, geometry: KadrioCollageGeometry, split: KadrioCollageSplit, spacing: Double, layout: KadrioCollageLayout)?
     @Published private(set) var sources: [KadrioSource]
     @Published private var snapshot: Snapshot
     @Published private(set) var preview: UIImage?
@@ -41,11 +41,18 @@ final class KadrioEditorModel: ObservableObject {
     @Published private(set) var layoutThumbnails: [KadrioCollageLayout: UIImage] = [:]
     @Published private(set) var frameThumbnails: [KadrioFrame: UIImage] = [:]
     private var frameThumbnailKeys: [KadrioFrame: KadrioRenderKey] = [:]
-    private struct LayoutThumbnailKey: Equatable {
+    private struct ThumbnailRenderKey: Equatable {
         let sourceIDs: [UUID]
         let state: KadrioEditState
     }
-    private var layoutThumbnailKeys: [KadrioCollageLayout: LayoutThumbnailKey] = [:]
+    private struct ThumbnailBatchKey: Equatable {
+        let layouts: [ThumbnailRenderKey]
+        let filter: ThumbnailRenderKey
+        let frames: [KadrioRenderKey]
+    }
+    private var scheduledThumbnailKey: ThumbnailBatchKey?
+    private var thumbnailGeneration = 0
+    private var layoutThumbnailKeys: [KadrioCollageLayout: ThumbnailRenderKey] = [:]
     private var layoutThumbnailTask: Task<Void, Never>?
     @Published private(set) var undoStates: [Snapshot] = []
     @Published private(set) var redoStates: [Snapshot] = []
@@ -60,7 +67,7 @@ final class KadrioEditorModel: ObservableObject {
     private var revision = 0
     private var sliderEditing = false
     private var gestureEditing = false
-    private var filterThumbnailKey: LayoutThumbnailKey?
+    private var filterThumbnailKey: ThumbnailRenderKey?
     private static let historyLimit = 60
     private var continuousEditStart: Snapshot?
     private var cropPanning = false
@@ -95,7 +102,7 @@ final class KadrioEditorModel: ObservableObject {
         savedSnapshot = initial
     }
 
-    var state: KadrioEditState {
+    private(set) var state: KadrioEditState {
         get { snapshot.state }
         set {
             var next = snapshot
@@ -317,7 +324,7 @@ final class KadrioEditorModel: ObservableObject {
             cropZoomStart = state.crop.zoom
             gestureEditingChanged(true)
         }
-        let zoom = min(6, max(1, (cropZoomStart ?? 1) * magnification))
+        let zoom = KadrioGeometry.clampedZoom((cropZoomStart ?? 1) * magnification)
         change {
             $0.crop.zoom = zoom
             if previewCropSourceSize.width > 0, let preview {
@@ -399,7 +406,7 @@ final class KadrioEditorModel: ObservableObject {
             context.magnification = magnification
         }
         let cell = context.geometry.cells[context.index]
-        let zoom = min(6, max(1, context.initialZoom * context.magnification))
+        let zoom = KadrioGeometry.clampedZoom(context.initialZoom * context.magnification)
         let placement = context.geometry.placement(index: context.index, sourceSize: context.sourceSize,
             start: context.placement, translation: delta, magnification: zoom / context.placement.zoom,
             anchor: context.zoomAnchor ?? CGPoint(x: cell.midX, y: cell.midY))
@@ -425,7 +432,7 @@ final class KadrioEditorModel: ObservableObject {
             endCollageGesture()
             beginContinuousEditing()
             gestureEditingChanged(true)
-            dividerGesture = (divider, geometry, state.collageSplit, state.spacing, state.layout)
+            dividerGesture = (divider, geometry, state.collageSplit, state.spacing, state.collageLayout)
         }
         guard let context = dividerGesture, context.divider == divider else { return }
         let delta = context.geometry.canvasTranslation(translation)
@@ -439,7 +446,7 @@ final class KadrioEditorModel: ObservableObject {
         }
         change {
             var splits = $0.collageSplits ?? [:]
-            splits[context.layout] = split == KadrioCollageSplit() ? nil : split
+            splits[context.layout.rawValue] = split == KadrioCollageSplit() ? nil : split
             $0.collageSplits = splits.isEmpty ? nil : splits
         }
     }
@@ -463,16 +470,16 @@ final class KadrioEditorModel: ObservableObject {
     }
 
     func updatePreview() {
-        refreshLayoutThumbnails()
         revision += 1
         hasPreviewFailure = false
         renderError = nil
         isRenderingPreview = true
         guard previewTask == nil else { return }
-        previewTask = Task {
+        previewTask = Task(priority: .userInitiated) {
             defer {
                 previewTask = nil
                 isRenderingPreview = false
+                if !Task.isCancelled { refreshLayoutThumbnails() }
             }
             while !Task.isCancelled {
                 let currentRevision = revision
@@ -497,6 +504,13 @@ final class KadrioEditorModel: ObservableObject {
                     comparisonState.filter = .original
                     comparisonState.brightness = 0
                     comparisonState.contrast = 1
+                    if comparisonState == state {
+                        comparisonPreview = frame.image
+                        return
+                    }
+                    await Task.yield()
+                    guard !Task.isCancelled else { return }
+                    if revision != currentRevision { continue }
                     let comparisonImage = try await KadrioImageProcessing.shared.preview(sources: sources, state: comparisonState)
                     guard !Task.isCancelled else { return }
                     if revision != currentRevision { continue }
@@ -513,11 +527,12 @@ final class KadrioEditorModel: ObservableObject {
         }
     }
 
-    private var currentFilterThumbnailKey: LayoutThumbnailKey {
+    private var currentFilterThumbnailKey: ThumbnailRenderKey {
         var value = state
         value.filter = .original
         value.intensity = 1
-        return LayoutThumbnailKey(sourceIDs: activeSources.map(\.id), state: value)
+        let key = KadrioRenderKey(state: value, sourceIDs: activeSources.map(\.id))
+        return ThumbnailRenderKey(sourceIDs: key.sourceIDs, state: key.state)
     }
 
     func loadThumbnails() async {
@@ -526,7 +541,8 @@ final class KadrioEditorModel: ObservableObject {
         let photos = activeSources
         var result: [KadrioFilter: UIImage] = [:]
         for filter in KadrioFilter.allCases {
-            guard !Task.isCancelled else { return }
+            if let previewTask { await previewTask.value }
+            guard !Task.isCancelled, currentFilterThumbnailKey == key else { return }
             var value = key.state
             value.filter = filter
             value.intensity = 1
@@ -547,6 +563,8 @@ final class KadrioEditorModel: ObservableObject {
         let photos = activeSources
         let ids = photos.map(\.id)
         for frame in KadrioFrame.allCases where frame != .none {
+            guard !Task.isCancelled else { return }
+            if let previewTask { await previewTask.value }
             guard !Task.isCancelled else { return }
             let candidate = stateSelectingFrame(frame)
             let key = KadrioRenderKey(state: candidate, sourceIDs: ids)
@@ -602,31 +620,53 @@ final class KadrioEditorModel: ObservableObject {
         return values + Array(repeating: KadrioPlacement(), count: max(0, 4 - values.count))
     }
 
+    private func layoutThumbnailRequest(_ layout: KadrioCollageLayout) -> ThumbnailRenderKey {
+        let ids = sourceIDs(for: layout.photoCount)
+        var value = KadrioEditState()
+        value.collage = true
+        value.sourceCount = ids.count
+        value.collageLayout = layout
+        if let split = state.collageSplits?[layout.rawValue] {
+            value.collageSplits = [layout.rawValue: split]
+        }
+        value.spacing = state.spacing
+        value.placements = placements(for: ids)
+        value.filter = state.filter
+        value.intensity = state.intensity
+        value.brightness = state.brightness
+        value.contrast = state.contrast
+        return ThumbnailRenderKey(sourceIDs: ids, state: value)
+    }
+
     private func refreshLayoutThumbnails() {
+        let layouts = KadrioCollageLayout.allCases
+        let requests = layouts.map { layoutThumbnailRequest($0) }
+        let frames = KadrioFrame.allCases.filter { $0 != .none }
+        let frameKeys = frames.map { KadrioRenderKey(state: stateSelectingFrame($0), sourceIDs: activeSources.map(\.id)) }
+        let key = ThumbnailBatchKey(layouts: requests, filter: currentFilterThumbnailKey, frames: frameKeys)
+        let complete = zip(layouts, requests).allSatisfy { layoutThumbnailKeys[$0.0] == $0.1 }
+            && filterThumbnailKey == key.filter
+            && zip(frames, frameKeys).allSatisfy { frameThumbnailKeys[$0.0] == $0.1 }
+        guard !complete else { return }
+        if scheduledThumbnailKey == key, let layoutThumbnailTask, !layoutThumbnailTask.isCancelled { return }
         layoutThumbnailTask?.cancel()
-        layoutThumbnailTask = Task {
+        thumbnailGeneration += 1
+        let generation = thumbnailGeneration
+        scheduledThumbnailKey = key
+        layoutThumbnailTask = Task(priority: .utility) {
+            defer {
+                if thumbnailGeneration == generation { layoutThumbnailTask = nil }
+            }
             do { try await Task.sleep(for: .milliseconds(120)) } catch { return }
-            for layout in KadrioCollageLayout.allCases {
-                guard !Task.isCancelled else { return }
-                let ids = sourceIDs(for: layout.photoCount)
-                let photos = ids.compactMap { id in sources.first { $0.id == id } }
-                var value = KadrioEditState()
-                value.collage = true
-                value.sourceCount = photos.count
-                value.collageLayout = layout
-                value.collageSplits = state.collageSplits
-                value.spacing = state.spacing
-                value.placements = placements(for: ids)
-                value.filter = state.filter
-                value.intensity = state.intensity
-                value.brightness = state.brightness
-                value.contrast = state.contrast
-                let key = LayoutThumbnailKey(sourceIDs: ids, state: value)
-                guard layoutThumbnailKeys[layout] != key else { continue }
-                guard let image = try? await KadrioImageProcessing.shared.layoutThumbnail(sources: photos, state: value),
-                      !Task.isCancelled else { return }
+            for (layout, request) in zip(layouts, requests) {
+                if let previewTask { await previewTask.value }
+                guard !Task.isCancelled, layoutThumbnailRequest(layout) == request else { return }
+                guard layoutThumbnailKeys[layout] != request else { continue }
+                let photos = request.sourceIDs.compactMap { id in sources.first { $0.id == id } }
+                guard let image = try? await KadrioImageProcessing.shared.layoutThumbnail(sources: photos, state: request.state),
+                      !Task.isCancelled, layoutThumbnailRequest(layout) == request else { return }
                 layoutThumbnails[layout] = image
-                layoutThumbnailKeys[layout] = key
+                layoutThumbnailKeys[layout] = request
             }
             await loadThumbnails()
             await loadFrameThumbnails()

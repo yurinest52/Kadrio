@@ -49,6 +49,7 @@ struct KadrioEditorCanvas: View {
                         let geometry = KadrioCollageGeometry(state: state, count: model.activeSourceCount, previewSize: size)
                         Color.clear.contentShape(Rectangle()).frame(width: size.width, height: size.height)
                             .gesture(collageInteraction(geometry: geometry, size: size))
+                            .simultaneousGesture(collageSelection(geometry: geometry))
                             .accessibilityLabel(kadrioText("collage"))
                             .accessibilityHint(kadrioText("collage.gesture"))
                             .overlay(alignment: .topLeading) {
@@ -114,21 +115,30 @@ struct KadrioEditorCanvas: View {
             .applying(geometry.canvasToView)
     }
 
+    private func collageContentMask(_ geometry: KadrioCollageGeometry) -> Path {
+        Path(roundedRect: geometry.contentRect, cornerRadius: geometry.contentRadius)
+            .applying(geometry.outputToView)
+    }
+
     @ViewBuilder
     private func collageOverlay(geometry: KadrioCollageGeometry, size: CGSize) -> some View {
         if let id = model.selectedCollageSourceID,
            let index = model.activeSources.firstIndex(where: { $0.id == id }), geometry.cells.indices.contains(index) {
             cellPath(index, geometry: geometry).stroke(.black.opacity(0.85), lineWidth: 3)
                 .overlay { cellPath(index, geometry: geometry).stroke(.white, lineWidth: 1) }
+                .mask { collageContentMask(geometry) }
                 .allowsHitTesting(false)
         }
         if let id = draggedSourceID,
            let index = model.activeSources.firstIndex(where: { $0.id == id }), geometry.cells.indices.contains(index) {
-            cellPath(index, geometry: geometry).fill(.black.opacity(0.15)).allowsHitTesting(false)
+            cellPath(index, geometry: geometry).fill(.black.opacity(0.15))
+                .mask { collageContentMask(geometry) }.allowsHitTesting(false)
         }
         if let target = dropTarget, geometry.cells.indices.contains(target) {
             cellPath(target, geometry: geometry).fill(.white.opacity(0.2))
-                .overlay { cellPath(target, geometry: geometry).stroke(.white, lineWidth: 3) }
+                .overlay { cellPath(target, geometry: geometry).stroke(.black.opacity(0.9), lineWidth: 5) }
+                .overlay { cellPath(target, geometry: geometry).stroke(.white, lineWidth: 2) }
+                .mask { collageContentMask(geometry) }
                 .allowsHitTesting(false)
         }
         if draggedSourceID == nil {
@@ -191,14 +201,19 @@ struct KadrioEditorCanvas: View {
         }.stroke(.white.opacity(0.75), lineWidth: 1).frame(width: size.width, height: size.height)
     }
 
-    private func collageInteraction(geometry: KadrioCollageGeometry, size: CGSize) -> some Gesture {
-        let tap = SpatialTapGesture().onEnded { value in
-            model.selectedCollageSourceID = geometry.photo(at: value.location).flatMap { index in
+    private func collageSelection(geometry: KadrioCollageGeometry) -> some Gesture {
+        SpatialTapGesture().onEnded { value in
+            guard !reordering, !collageGestureActive, !dividerActive else { return }
+            let tappedSourceID = geometry.photo(at: value.location).flatMap { index in
                 model.activeSources.indices.contains(index) ? model.activeSources[index].id : nil
             }
+            model.selectedCollageSourceID = model.selectedCollageSourceID == tappedSourceID ? nil : tappedSourceID
         }
+    }
+
+    private func collageInteraction(geometry: KadrioCollageGeometry, size: CGSize) -> some Gesture {
         return collageReordering(geometry: geometry)
-            .exclusively(before: collageManipulation(geometry: geometry, size: size).simultaneously(with: tap))
+            .exclusively(before: collageManipulation(geometry: geometry, size: size))
     }
 
     private func collageReordering(geometry: KadrioCollageGeometry) -> some Gesture {
@@ -217,7 +232,9 @@ struct KadrioEditorCanvas: View {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 }
                 dragLocation = drag.location
-                dropTarget = geometry.photo(at: drag.location)
+                dropTarget = geometry.photo(at: drag.location).flatMap { index in
+                    model.activeSources.indices.contains(index) && model.activeSources[index].id != draggedSourceID ? index : nil
+                }
             }.onEnded { value in
                 if case .second(true, let drag?) = value,
                    let id = draggedSourceID ?? geometry.photo(at: drag.startLocation).flatMap({ index in

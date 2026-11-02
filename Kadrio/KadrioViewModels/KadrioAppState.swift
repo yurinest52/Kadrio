@@ -17,12 +17,11 @@ final class KadrioAppState: ObservableObject {
     private var isInitialPaywall = false
     @Published var accessDenied = false
     let storage: KadrioWorksStorage
-    let worksDirectory: URL
+    var worksDirectory: URL { storage.directory }
     private var pendingSave: KadrioWorksStorage.PendingSave?
 
     init(storage: KadrioWorksStorage = KadrioWorksStorage()) {
         self.storage = storage
-        worksDirectory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("KadrioWorks")
     }
 
     func initialize() async {
