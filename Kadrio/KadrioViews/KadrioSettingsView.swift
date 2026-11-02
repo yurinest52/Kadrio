@@ -23,43 +23,6 @@ enum KadrioDocument: String, Identifiable {
     var title: String { kadrioText(rawValue) }
 }
 
-struct KadrioDocumentView: View {
-    let document: KadrioDocument
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.openURL) private var openURL
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    Image(systemName: document == .support ? "envelope" : "doc.text").font(
-                        .system(size: 32, weight: .light)
-                    ).padding(.top, 20)
-                    Text(kadrioText("document.\(document.rawValue)")).font(.system(size: 17)).lineSpacing(6)
-                    if document == .support, let email = KadrioConfiguration.supportEmail,
-                        let url = URL(string: "mailto:\(email)")
-                    {
-                        Link(email, destination: url).font(.headline)
-                    } else if document != .support, let url = KadrioConfiguration.documentURL(document) {
-                        KadrioPrimaryButton(title: kadrioText("document.open")) { openURL(url) }
-                    } else {
-                        Text(kadrioText("document.configuration")).font(.system(size: 14)).foregroundStyle(
-                            Color.kadrioSecondary)
-                    }
-                    if document == .support {
-                        ShareLink(
-                            item:
-                                "Kadrio · iOS \(UIDevice.current.systemVersion) · \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0")"
-                        ) {
-                            Label(kadrioText("support.diagnostics"), systemImage: "square.and.arrow.up")
-                        }
-                    }
-                }.padding(24)
-            }.background(Color.kadrioBackground).navigationTitle(document.title).navigationBarTitleDisplayMode(.inline)
-                .toolbar { ToolbarItem(placement: .topBarTrailing) { Button(kadrioText("done")) { dismiss() } } }
-        }
-    }
-}
-
 struct KadrioSettingsView: View {
     @EnvironmentObject private var app: KadrioAppState
     @Environment(\.dismiss) private var dismiss

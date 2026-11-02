@@ -383,8 +383,12 @@ struct KadrioEditorView: View {
                     }.buttonStyle(KadrioPressButtonStyle())
                 }
             }
-            parameterSlider("intensity", value: $model.state.intensity, range: 0...1)
+            if model.state.filter != .original {
+                parameterSlider("intensity", value: $model.state.intensity, range: 0...1)
+                    .transition(.opacity)
+            }
         }
+        .animation(.easeInOut(duration: 0.2), value: model.state.filter != .original)
     }
 
     private var frameControls: some View {
@@ -431,9 +435,12 @@ struct KadrioEditorView: View {
                         .frame(width: 32, height: 32)
                 }.accessibilityLabel(kadrioText("frameColor"))
                 Slider(
-                    value: $model.state.thickness, in: 0.01...0.14,
-                    onEditingChanged: { editing in if editing { model.checkpoint() } else { model.updatePreview() } }
-                ).onChange(of: model.state.thickness) { model.updatePreview() }.accessibilityLabel(
+                    value: Binding(get: { model.state.thickness }, set: {
+                        model.state.thickness = $0
+                        model.updatePreview()
+                    }), in: 0.01...0.14,
+                    onEditingChanged: model.sliderEditingChanged
+                ).accessibilityLabel(
                     kadrioText("thickness"))
             }
         }
@@ -460,9 +467,12 @@ struct KadrioEditorView: View {
             Text(title == "spacing" ? kadrioText(title) : String(format: kadrioText("parameter.value"), kadrioText(title), Int(value.wrappedValue * 100)))
                 .font(.system(size: 10)).foregroundStyle(Color.kadrioSecondary)
             Slider(
-                value: value, in: range,
-                onEditingChanged: { editing in if editing { model.checkpoint() } else { model.updatePreview() } }
-            ).onChange(of: value.wrappedValue) { model.updatePreview() }.accessibilityLabel(kadrioText(title))
+                value: Binding(get: { value.wrappedValue }, set: {
+                    value.wrappedValue = $0
+                    model.updatePreview()
+                }), in: range,
+                onEditingChanged: model.sliderEditingChanged
+            ).accessibilityLabel(kadrioText(title))
         }
     }
 
@@ -494,12 +504,13 @@ struct KadrioEditorView: View {
     private func panGesture(index: Int?, size: CGSize) -> some Gesture {
         DragGesture(minimumDistance: 2).onChanged { value in
             if gesturePlacement == nil {
-                model.checkpoint()
+                if gestureZoom == nil { model.checkpoint() }
                 gesturePlacement = index.map { model.state.placements[$0] } ?? model.state.crop
             }
-            var placement = gesturePlacement ?? KadrioPlacement()
-            placement.x = max(-1, min(1, placement.x + value.translation.width / max(1, size.width) * 2))
-            placement.y = max(-1, min(1, placement.y + value.translation.height / max(1, size.height) * 2))
+            let start = gesturePlacement ?? KadrioPlacement()
+            var placement = index.map { model.state.placements[$0] } ?? model.state.crop
+            placement.x = max(-1, min(1, start.x + value.translation.width / max(1, size.width) * 2))
+            placement.y = max(-1, min(1, start.y + value.translation.height / max(1, size.height) * 2))
             if let index { model.state.placements[index] = placement } else { model.state.crop = placement }
             model.updatePreview()
         }.onEnded { _ in gesturePlacement = nil }
@@ -508,7 +519,7 @@ struct KadrioEditorView: View {
     private func zoomGesture(index: Int?) -> some Gesture {
         MagnificationGesture().onChanged { scale in
             if gestureZoom == nil {
-                model.checkpoint()
+                if gesturePlacement == nil { model.checkpoint() }
                 gestureZoom = index.map { model.state.placements[$0].zoom } ?? model.state.crop.zoom
             }
             let zoom = min(6, max(1, (gestureZoom ?? 1) * scale))

@@ -17,6 +17,7 @@ final class KadrioEditorModel: ObservableObject {
     private var initialState: KadrioEditState
     private var savedState: KadrioEditState
     private var revision = 0
+    private var sliderEditing = false
 
     init(request: KadrioEditorRequest) {
         sources = request.sources
@@ -71,28 +72,46 @@ final class KadrioEditorModel: ObservableObject {
 
     func markSaved() { savedState = state }
 
+    func sliderEditingChanged(_ editing: Bool) {
+        if editing { checkpoint() }
+        sliderEditing = editing
+        updatePreview()
+    }
+
     func updatePreview() {
         revision += 1
-        let currentRevision = revision
-        previewTask?.cancel()
-        let sources = sources
-        let state = state
         rendering = true
+        guard previewTask == nil else { return }
         previewTask = Task {
-            do {
-                try await Task.sleep(for: .milliseconds(35))
-                try Task.checkCancellation()
-                let image = try await KadrioImageProcessing.shared.preview(sources: sources, state: state)
-                guard !Task.isCancelled, revision == currentRevision else { return }
-                preview = image
+            defer {
+                previewTask = nil
                 rendering = false
-                var originalState = state
-                originalState.filter = .original
-                let originalImage = try await KadrioImageProcessing.shared.preview(sources: sources, state: originalState)
-                guard !Task.isCancelled, revision == currentRevision else { return }
-                original = originalImage
-            } catch {
-                if !Task.isCancelled, revision == currentRevision { rendering = false; renderError = kadrioText("error.image") }
+            }
+            while !Task.isCancelled {
+                let currentRevision = revision
+                let sources = sources
+                let state = state
+                let interactive = sliderEditing
+                do {
+                    let image = try await KadrioImageProcessing.shared.preview(
+                        sources: sources, state: state, maxPixel: interactive ? 720 : 1400)
+                    guard !Task.isCancelled else { return }
+                    preview = image
+                    if revision != currentRevision { continue }
+                    if interactive { return }
+                    var originalState = state
+                    originalState.filter = .original
+                    let originalImage = try await KadrioImageProcessing.shared.preview(sources: sources, state: originalState)
+                    guard !Task.isCancelled else { return }
+                    if revision != currentRevision { continue }
+                    original = originalImage
+                    return
+                } catch {
+                    guard !Task.isCancelled else { return }
+                    if revision != currentRevision { continue }
+                    renderError = kadrioText("error.image")
+                    return
+                }
             }
         }
     }

@@ -18,6 +18,12 @@ struct KadrioImportFile: Transferable, Sendable {
 
 actor KadrioImageProcessing {
     static let shared = KadrioImageProcessing()
+    private let previewSources: NSCache<NSURL, CIImage> = {
+        let cache = NSCache<NSURL, CIImage>()
+        cache.countLimit = 4
+        cache.totalCostLimit = 40 * 1024 * 1024
+        return cache
+    }()
     private let colorSpace = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
     private lazy var context = CIContext(options: [.cacheIntermediates: false, .workingColorSpace: colorSpace])
 
@@ -57,7 +63,17 @@ actor KadrioImageProcessing {
     }
 
     private func image(_ source: KadrioSource, preview: Bool) throws -> CIImage {
-        guard let result = CIImage(contentsOf: preview ? source.previewURL : source.url, options: [.applyOrientationProperty: true]) else { throw KadrioError.invalidImage }
+        if preview {
+            let key = source.previewURL as NSURL
+            if let cached = previewSources.object(forKey: key) { return cached }
+            guard let file = CGImageSourceCreateWithURL(source.previewURL as CFURL, nil),
+                  let decoded = CGImageSourceCreateImageAtIndex(file, 0, [kCGImageSourceShouldCacheImmediately: true] as CFDictionary)
+            else { throw KadrioError.invalidImage }
+            let result = CIImage(cgImage: decoded)
+            previewSources.setObject(result, forKey: key, cost: decoded.bytesPerRow * decoded.height)
+            return result
+        }
+        guard let result = CIImage(contentsOf: source.url, options: [.applyOrientationProperty: true]) else { throw KadrioError.invalidImage }
         return normalized(result)
     }
 
@@ -141,11 +157,11 @@ actor KadrioImageProcessing {
         return framed(normalized(result), state: state)
     }
 
-    func preview(sources: [KadrioSource], state: KadrioEditState) throws -> UIImage {
+    func preview(sources: [KadrioSource], state: KadrioEditState, maxPixel: Double = 1400) throws -> UIImage {
         try Task.checkCancellation()
         return try autoreleasepool {
             let image = try render(sources: sources, state: state, preview: true)
-            let scale = min(1, 1400 / max(image.extent.width, image.extent.height))
+            let scale = min(1, maxPixel / max(image.extent.width, image.extent.height))
             let scaled = image.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
             guard let cgImage = context.createCGImage(scaled, from: scaled.extent, format: .RGBA8, colorSpace: colorSpace) else { throw KadrioError.invalidImage }
             return UIImage(cgImage: cgImage)
@@ -163,6 +179,7 @@ actor KadrioImageProcessing {
 
     func clean(_ sources: [KadrioSource]) {
         for source in sources {
+            previewSources.removeObject(forKey: source.previewURL as NSURL)
             let directory = source.url.deletingLastPathComponent()
             guard directory.lastPathComponent.hasPrefix("KadrioEditing-") else { continue }
             try? FileManager.default.removeItem(at: directory)
