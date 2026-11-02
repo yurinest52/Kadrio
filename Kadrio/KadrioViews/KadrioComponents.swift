@@ -34,21 +34,44 @@ struct KadrioFileImage: View {
     let url: URL
     var maxPixel = 700
     var mode: ContentMode = .fill
-    @State private var image: UIImage?
+    private enum LoadState {
+        case loading, success(UIImage), failure
+    }
+    private struct LoadRequest: Hashable {
+        let url: URL
+        let maxPixel: Int
+        let retry: Int
+    }
+    @State private var loadState = LoadState.loading
+    @State private var retry = 0
     var body: some View {
         GeometryReader { geometry in
             Group {
-                if let image {
+                switch loadState {
+                case .success(let image):
                     Image(uiImage: image).resizable().aspectRatio(contentMode: mode)
-                } else {
+                case .loading:
                     Color.black.opacity(0.035).overlay { ProgressView() }
+                case .failure:
+                    Color.black.opacity(0.035).overlay {
+                        VStack(spacing: 6) {
+                            Text(kadrioText("image.loadFailed")).font(.system(size: 11))
+                                .multilineTextAlignment(.center).lineLimit(2).minimumScaleFactor(0.7)
+                            Button(kadrioText("retry")) {
+                                loadState = .loading
+                                retry += 1
+                            }.font(.system(size: 12, weight: .medium)).buttonStyle(.borderless)
+                                .frame(minHeight: 28)
+                        }.padding(6)
+                    }
                 }
             }.frame(width: geometry.size.width, height: geometry.size.height).clipped()
         }
-        .task(id: url) {
+        .task(id: LoadRequest(url: url, maxPixel: maxPixel, retry: retry)) {
+            loadState = .loading
             let url = url
             let maxPixel = maxPixel
-            image = await Task.detached(priority: .userInitiated) {
+            let image = await Task.detached(priority: .userInitiated) {
                 guard
                     let source = CGImageSourceCreateWithURL(
                         url as CFURL, [kCGImageSourceShouldCache: false] as CFDictionary),
@@ -62,6 +85,8 @@ struct KadrioFileImage: View {
                 else { return nil as UIImage? }
                 return UIImage(cgImage: cg)
             }.value
+            guard !Task.isCancelled else { return }
+            loadState = image.map(LoadState.success) ?? .failure
         }
     }
 }

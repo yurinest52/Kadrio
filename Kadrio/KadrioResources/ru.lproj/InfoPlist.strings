@@ -1,2 +1,4 @@
 "NSCameraUsageDescription" = "Снимайте фотографии для редактирования в Kadrio.";
 "NSPhotoLibraryAddUsageDescription" = "Сохраняйте отредактированные фотографии в фототеку.";
+"NSPhotoLibraryUsageDescription" = "Проверяйте, было ли фото добавлено в галерею при прерванном сохранении.";
+"UILaunchStoryboardName" = "KadrioLaunchScreenRussian";

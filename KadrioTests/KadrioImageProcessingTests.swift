@@ -20,6 +20,103 @@ final class KadrioImageProcessingTests: XCTestCase {
         return CGSize(width: width, height: height)
     }
 
+    private func createOrientationPhoto() throws -> URL {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("KadrioOrientation-\(UUID()).jpg")
+        let size = CGSize(width: 240, height: 160)
+        let colors = [CIColor.red, CIColor.green, CIColor.blue, CIColor(red: 1, green: 1, blue: 0)]
+        var image = CIImage(color: .black).cropped(to: CGRect(origin: .zero, size: size))
+        for (index, color) in colors.enumerated() {
+            let rect = CGRect(x: index % 2 * 120, y: index / 2 * 80, width: 120, height: 80)
+            image = CIImage(color: color).cropped(to: rect).composited(over: image)
+        }
+        try CIContext().writeJPEGRepresentation(of: image, to: url, colorSpace: CGColorSpaceCreateDeviceRGB())
+        return url
+    }
+
+    private func assertOrientation(_ image: CIImage, matches expected: CIImage, file: StaticString = #filePath, line: UInt = #line) {
+        XCTAssertEqual(image.extent.width, expected.extent.width, accuracy: 1, file: file, line: line)
+        XCTAssertEqual(image.extent.height, expected.extent.height, accuracy: 1, file: file, line: line)
+        let context = CIContext()
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        for x in [0.25, 0.75] {
+            for y in [0.25, 0.75] {
+                var actualPixel = [UInt8](repeating: 0, count: 4)
+                var expectedPixel = [UInt8](repeating: 0, count: 4)
+                let bounds = CGRect(x: image.extent.width * x, y: image.extent.height * y, width: 1, height: 1)
+                context.render(image, toBitmap: &actualPixel, rowBytes: 4, bounds: bounds, format: .RGBA8, colorSpace: colorSpace)
+                context.render(expected, toBitmap: &expectedPixel, rowBytes: 4, bounds: bounds, format: .RGBA8, colorSpace: colorSpace)
+                for channel in 0..<3 {
+                    XCTAssertEqual(Int(actualPixel[channel]), Int(expectedPixel[channel]), accuracy: 12, file: file, line: line)
+                }
+            }
+        }
+    }
+
+    @MainActor func testClockwiseRotationMatchesVisibleImageBeforeAndAfterFlip() async throws {
+        let url = try createOrientationPhoto()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let source = try await KadrioImageProcessing.shared.importSource(url: url)
+        let model = KadrioEditorModel(request: KadrioEditorRequest(sources: [source], tool: .crop))
+        defer { model.finish() }
+
+        for flipped in [false, true] {
+            for turns in 0..<4 {
+                var initial = KadrioEditState()
+                initial.turns = turns
+                initial.flipped = flipped
+                initial.freeRatio = turns.isMultiple(of: 2) ? 1.5 : 1 / 1.5
+                model.state = initial
+                let initialPreview = try await KadrioImageProcessing.shared.preview(sources: [source], state: initial)
+                var expected = CIImage(cgImage: try XCTUnwrap(initialPreview.cgImage))
+
+                for _ in 0..<4 {
+                    expected = expected.oriented(forExifOrientation: 6)
+                    model.rotateClockwise()
+                    let preview = try await KadrioImageProcessing.shared.preview(sources: [source], state: model.state)
+                    assertOrientation(CIImage(cgImage: try XCTUnwrap(preview.cgImage)), matches: expected)
+                    let export = try await KadrioImageProcessing.shared.export(sources: [source], state: model.state)
+                    defer { try? FileManager.default.removeItem(at: export) }
+                    assertOrientation(try XCTUnwrap(CIImage(contentsOf: export)), matches: expected)
+                }
+                XCTAssertEqual(model.state, initial)
+            }
+        }
+    }
+
+    @MainActor func testAlternatingFlipAndRotationPreservesVisibleOrderAndHistory() async throws {
+        let url = try createOrientationPhoto()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let source = try await KadrioImageProcessing.shared.importSource(url: url)
+        let model = KadrioEditorModel(request: KadrioEditorRequest(sources: [source], tool: .crop))
+        defer { model.finish() }
+        let preview = try await KadrioImageProcessing.shared.preview(sources: [source], state: model.state)
+        var expected = CIImage(cgImage: try XCTUnwrap(preview.cgImage))
+
+        for _ in 0..<4 {
+            model.change { $0.flipped.toggle() }
+            expected = expected.oriented(forExifOrientation: 2)
+            let beforeRotation = model.state
+            model.rotateClockwise()
+            expected = expected.oriented(forExifOrientation: 6)
+            let afterRotation = model.state
+            let rotated = try await KadrioImageProcessing.shared.preview(sources: [source], state: afterRotation)
+            assertOrientation(CIImage(cgImage: try XCTUnwrap(rotated.cgImage)), matches: expected)
+            model.undo()
+            XCTAssertEqual(model.state, beforeRotation)
+            model.redo()
+            XCTAssertEqual(model.state, afterRotation)
+        }
+
+        model.state.ratio = .square
+        let freeRatio = model.state.freeRatio
+        model.rotateClockwise()
+        XCTAssertEqual(model.state.ratio, .square)
+        XCTAssertEqual(model.state.freeRatio, freeRatio)
+        model.resetCrop()
+        XCTAssertEqual(model.state.turns, 0)
+        XCTAssertFalse(model.state.flipped)
+    }
+
     func testCropRatiosFitInsideSource() {
         let source = CGSize(width: 4000, height: 3000)
         for ratio in [1.0, 0.8, 9.0 / 16, 16.0 / 9] {

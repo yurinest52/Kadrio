@@ -1,2 +1,4 @@
 "NSCameraUsageDescription" = "Take photos to edit in Kadrio.";
 "NSPhotoLibraryAddUsageDescription" = "Save your edited photos to your photo library.";
+"NSPhotoLibraryUsageDescription" = "Check whether an interrupted save already added a photo to your library.";
+"UILaunchStoryboardName" = "KadrioLaunchScreen";

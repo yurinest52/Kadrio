@@ -36,7 +36,7 @@ actor KadrioImageProcessing {
             guard let source = CGImageSourceCreateWithURL(original as CFURL, [kCGImageSourceShouldCache: false] as CFDictionary), let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any], let width = properties[kCGImagePropertyPixelWidth] as? Int, let height = properties[kCGImagePropertyPixelHeight] as? Int else { throw KadrioError.invalidImage }
             let orientation = properties[kCGImagePropertyOrientation] as? Int ?? 1
             let preview = folder.appendingPathComponent("KadrioPreview.jpg")
-            try thumbnail(from: original, to: preview, maxPixel: 1400)
+            try thumbnail(from: original, to: preview, maxPixel: Int(KadrioImageQuality.previewMaxPixel))
             return KadrioSource(id: UUID(), url: original, previewURL: preview, pixelWidth: orientation >= 5 ? height : width, pixelHeight: orientation >= 5 ? width : height)
         } catch {
             try? FileManager.default.removeItem(at: folder)
@@ -78,13 +78,15 @@ actor KadrioImageProcessing {
     }
 
     private func positioned(_ image: CIImage, in rect: CGRect, placement: KadrioPlacement) -> CIImage {
-        let scale = max(rect.width / image.extent.width, rect.height / image.extent.height) * placement.zoom
-        let scaled = image.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
-        let excessX = max(0, scaled.extent.width - rect.width)
-        let excessY = max(0, scaled.extent.height - rect.height)
-        let x = rect.minX - excessX * (1 - min(1, max(-1, placement.x))) / 2
-        let y = rect.minY - excessY * (1 + min(1, max(-1, placement.y))) / 2
-        return scaled.transformed(by: CGAffineTransform(translationX: x, y: y)).cropped(to: rect)
+        image.transformed(by: KadrioGeometry.placementTransform(image.extent.size, in: rect, placement: placement)).cropped(to: rect)
+    }
+
+    private func adjusted(_ image: CIImage, state: KadrioEditState) -> CIImage {
+        guard state.brightness != 0 || state.contrast != 1 else { return image }
+        return image.applyingFilter("CIColorControls", parameters: [
+            kCIInputBrightnessKey: state.brightness, kCIInputContrastKey: state.contrast,
+            kCIInputSaturationKey: 1
+        ]).cropped(to: image.extent)
     }
 
     private func filtered(_ image: CIImage, filter: KadrioFilter, intensity: Double) -> CIImage {
@@ -102,21 +104,19 @@ actor KadrioImageProcessing {
 
     private func framed(_ image: CIImage, state: KadrioEditState) -> CIImage {
         guard state.frame != .none else { return image }
-        let border = min(image.extent.width, image.extent.height) * state.thickness
-        let bottom = state.frame == .polaroid ? border * 3.5 : border
-        let rect = CGRect(x: 0, y: 0, width: image.extent.width + border * 2, height: image.extent.height + border + bottom).integral
+        let contentRect = KadrioGeometry.frameContentRect(image.extent.size, state: state)
+        let border = contentRect.minX
+        let rect = KadrioGeometry.frameBounds(image.extent.size, state: state)
         let color = CIColor(red: state.frameColor.red, green: state.frameColor.green, blue: state.frameColor.blue, alpha: state.frameColor.alpha)
         let background = CIImage(color: color).composited(over: CIImage(color: .white)).cropped(to: rect)
-        let contentRect = CGRect(x: border, y: bottom, width: image.extent.width, height: image.extent.height)
-        var content = image.transformed(by: CGAffineTransform(translationX: border, y: bottom))
+        var content = image.transformed(by: CGAffineTransform(translationX: border, y: contentRect.minY))
         if state.frame == .rounded {
             let mask = (CIFilter(name: "CIRoundedRectangleGenerator", parameters: ["inputExtent": CIVector(cgRect: contentRect), "inputRadius": border * 2, "inputColor": CIColor.white])?.outputImage ?? CIImage(color: .white)).cropped(to: rect)
             content = content.applyingFilter("CIBlendWithMask", parameters: [kCIInputBackgroundImageKey: background, kCIInputMaskImageKey: mask])
         }
         var output = content.composited(over: background).cropped(to: rect)
         if state.frame == .double {
-            let outer = contentRect.insetBy(dx: border * 0.24, dy: border * 0.24)
-            let inner = outer.insetBy(dx: border * 0.16, dy: border * 0.16)
+            let (outer, inner) = KadrioGeometry.doubleFrameRects(contentRect)
             let band = CIImage(color: color).cropped(to: outer)
             let center = output.cropped(to: inner)
             output = center.composited(over: band.composited(over: output)).cropped(to: rect)
@@ -124,40 +124,58 @@ actor KadrioImageProcessing {
         return output
     }
 
-    private func render(sources: [KadrioSource], state: KadrioEditState, preview: Bool) throws -> CIImage {
+    private func render(sources: [KadrioSource], state: KadrioEditState, preview: Bool, collageSize: CGSize? = nil) throws -> CIImage {
         let sources = Array(sources.prefix(state.sourceCount))
         guard let first = sources.first else { throw KadrioError.invalidImage }
         var result: CIImage
-        if state.collage, sources.count >= 2 {
-            let size = CGSize(width: preview ? 1100 : 4000, height: preview ? 1375 : 5000)
+        if state.collage, sources.count >= 2 || collageSize != nil {
+            let size = collageSize ?? KadrioGeometry.collageSize(preview: preview)
             let rect = CGRect(origin: .zero, size: size)
             result = CIImage(color: .white).cropped(to: rect)
-            let cells = KadrioGeometry.cells(count: sources.count, layout: state.layout, size: size, spacing: state.spacing)
-            for (index, topRect) in cells.enumerated() {
-                let cell = CGRect(x: topRect.minX, y: size.height - topRect.maxY, width: topRect.width, height: topRect.height)
-                let source = try image(sources[index], preview: preview)
+            let count = collageSize == nil ? sources.count : (KadrioCollageLayout(rawValue: state.layout)?.photoCount ?? sources.count)
+            let cells = KadrioGeometry.collageImageCells(count: count, layout: state.layout, size: size, spacing: state.spacing, split: state.collageSplit)
+            for (index, cell) in cells.enumerated() {
+                guard sources.indices.contains(index) else { continue }
+                let source = adjusted(try image(sources[index], preview: preview), state: state)
                 let content = positioned(source, in: cell, placement: state.placements[index])
-                let mask = CIFilter(name: "CIRoundedRectangleGenerator", parameters: ["inputExtent": CIVector(cgRect: cell), "inputRadius": min(size.width, size.height) * 0.012, "inputColor": CIColor.white])?.outputImage ?? CIImage(color: .white)
+                let mask = CIFilter(name: "CIRoundedRectangleGenerator", parameters: ["inputExtent": CIVector(cgRect: cell), "inputRadius": KadrioGeometry.collageCornerRadius(size), "inputColor": CIColor.white])?.outputImage ?? CIImage(color: .white)
                 let rounded = content.applyingFilter("CIBlendWithMask", parameters: [kCIInputBackgroundImageKey: CIImage(color: .white).cropped(to: cell), kCIInputMaskImageKey: mask]).cropped(to: cell)
                 result = rounded.composited(over: result)
             }
         } else {
-            result = try image(first, preview: preview)
+            result = adjusted(try image(first, preview: preview), state: state)
         }
-        if state.turns % 4 != 0 {
-            result = normalized(result.transformed(by: CGAffineTransform(rotationAngle: -Double(state.turns % 4) * .pi / 2)))
-        }
-        if state.flipped {
-            result = normalized(result.transformed(by: CGAffineTransform(scaleX: -1, y: 1)))
-        }
-        let ratio = state.ratio.value ?? state.freeRatio
+        result = normalized(result.transformed(by: KadrioGeometry.orientationTransform(result.extent.size, turns: state.turns, flipped: state.flipped)))
+        let ratio = state.cropAspectRatio
         let cropSize = KadrioGeometry.cropSize(result.extent.size, ratio: ratio)
         result = positioned(result, in: CGRect(origin: .zero, size: cropSize), placement: state.crop)
         result = filtered(result, filter: state.filter, intensity: state.intensity)
         return framed(normalized(result), state: state)
     }
 
-    func preview(sources: [KadrioSource], state: KadrioEditState, maxPixel: Double = 1400) throws -> UIImage {
+    func layoutThumbnail(sources: [KadrioSource], state: KadrioEditState) throws -> UIImage {
+        try Task.checkCancellation()
+        return try autoreleasepool {
+            let image = try render(sources: sources, state: state, preview: true, collageSize: KadrioImageQuality.layoutThumbnailSize)
+            guard let cg = context.createCGImage(image, from: image.extent, format: .RGBA8, colorSpace: colorSpace) else { throw KadrioError.invalidImage }
+            return UIImage(cgImage: cg)
+        }
+    }
+
+    func cropSourceSize(sources: [KadrioSource], state: KadrioEditState) throws -> CGSize {
+        guard let first = sources.first else { throw KadrioError.invalidImage }
+        let size = state.collage && state.sourceCount >= 2
+            ? KadrioGeometry.collageSize(preview: true) : try image(first, preview: true).extent.size
+        return CGRect(origin: .zero, size: size)
+            .applying(KadrioGeometry.orientationTransform(size, turns: state.turns, flipped: state.flipped)).size
+    }
+
+    func previewFrame(sources: [KadrioSource], state: KadrioEditState, maxPixel: Double) throws -> (image: UIImage, cropSourceSize: CGSize) {
+        let size = try cropSourceSize(sources: sources, state: state)
+        return (try preview(sources: sources, state: state, maxPixel: maxPixel), size)
+    }
+
+    func preview(sources: [KadrioSource], state: KadrioEditState, maxPixel: Double = KadrioImageQuality.previewMaxPixel) throws -> UIImage {
         try Task.checkCancellation()
         return try autoreleasepool {
             let image = try render(sources: sources, state: state, preview: true)

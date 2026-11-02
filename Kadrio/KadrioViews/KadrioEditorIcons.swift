@@ -42,13 +42,13 @@ private struct KadrioToolIconShape: Shape {
 }
 
 struct KadrioCropActionIcon: View {
-    let action: String
+    let action: KadrioCropAction
     var body: some View {
         Canvas { context, size in
             let scale = min(size.width, size.height) / 24
             context.scaleBy(x: scale, y: scale)
             var path = Path()
-            if action == "flip" {
+            if action == .flip {
                 path.move(to: CGPoint(x: 12, y: 2))
                 path.addLine(to: CGPoint(x: 12, y: 22))
                 path.move(to: CGPoint(x: 16, y: 5))
@@ -69,7 +69,7 @@ struct KadrioCropActionIcon: View {
                 path.move(to: CGPoint(x: 20, y: 2))
                 path.addLine(to: CGPoint(x: 20, y: 8))
                 path.addLine(to: CGPoint(x: 14, y: 8))
-                if action == "reset" {
+                if action == .reset {
                     path = path.applying(CGAffineTransform(a: -1, b: 0, c: 0, d: 1, tx: 24, ty: 0))
                 }
             }

@@ -27,16 +27,19 @@ struct KadrioRootView: View {
         reduceMotion ? .easeOut(duration: 0.18) : .timingCurve(0.22, 1, 0.36, 1, duration: 0.54)
     }
 
-    private var showingSplash: Bool { !splashFinished || !app.initialized }
+    private var showingSplash: Bool { app.initializationError == nil && (!splashFinished || !app.initialized) }
     var body: some View {
         ZStack {
             Color.kadrioBackground.ignoresSafeArea()
-            if showingSplash { KadrioSplashView().transition(.kadrioScreen(reduceMotion: reduceMotion)).zIndex(1) }
+            if let message = app.initializationError {
+                storageRecovery(message: message)
+            }
+            else if showingSplash { KadrioSplashView().transition(.kadrioScreen(reduceMotion: reduceMotion)).zIndex(1) }
             else if !onboardingCompleted {
                 KadrioOnboardingView {
                     withAnimation(screenAnimation) {
                         onboardingCompleted = true
-                        app.showPaywall = true
+                        app.presentInitialPaywall()
                     }
                 }
                 .transition(.kadrioScreen(reduceMotion: reduceMotion))
@@ -55,8 +58,21 @@ struct KadrioRootView: View {
                 splashFinished = true
             } catch {}
         }
-        .alert(kadrioText("error.title"), isPresented: Binding(get: { !app.initialized && app.errorMessage != nil }, set: { if !$0 { app.errorMessage = nil } })) {
-            Button(kadrioText("retry")) { Task { await app.initialize() } }
-        } message: { Text(app.errorMessage ?? "") }
+    }
+
+    private func storageRecovery(message: String) -> some View {
+        ScrollView {
+            VStack(spacing: 18) {
+                Image(systemName: "externaldrive.badge.exclamationmark")
+                    .font(.system(size: 36)).padding(.top, 32).accessibilityHidden(true)
+                Text(kadrioText("storageRecovery.title")).font(.system(size: 24, weight: .bold))
+                Text(message).font(.system(size: 15)).foregroundStyle(Color.kadrioSecondary)
+            }.multilineTextAlignment(.center).frame(maxWidth: .infinity).padding(24)
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            KadrioPrimaryButton(title: kadrioText(app.isInitializing ? "loading" : "retry")) {
+                Task { await app.initialize() }
+            }.disabled(app.isInitializing).padding(24).background(Color.kadrioBackground)
+        }
     }
 }

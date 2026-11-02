@@ -15,7 +15,6 @@ struct KadrioHomeView: View {
     @State private var settings = false
     @State private var loading = false
     @State private var selectedTool: KadrioTool = .filters
-    @State private var carouselTool: KadrioTool? = .collage
     @State private var photoItems: [PhotosPickerItem] = []
     @State private var editor: KadrioEditorRequest?
     @State private var viewedWork: KadrioWork?
@@ -57,7 +56,7 @@ struct KadrioHomeView: View {
                             Text(kadrioText("works.emptyMessage")).font(.system(size: 12)).foregroundStyle(
                                 Color.kadrioSecondary
                             ).multilineTextAlignment(.center).frame(maxWidth: 210)
-                        }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom).padding(.bottom, 100)
+                        }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center).padding(.bottom, 100)
                     } else {
                         ScrollView {
                             LazyVGrid(
@@ -168,43 +167,35 @@ struct KadrioHomeView: View {
     private func carousel(width: CGFloat) -> some View {
         let cardWidth = max(1, (max(240, width) - 64) / 3)
         let photoWidth = cardWidth + 12
-        return VStack(spacing: 13) {
-            ScrollView(.horizontal) {
-                HStack(spacing: -6) {
-                    ForEach(KadrioTool.allCases) { tool in
-                        Button {
-                            selectedTool = tool
-                            addPhoto = true
-                        } label: {
-                            Image(tool.asset).resizable().scaledToFit().frame(
-                                width: photoWidth, height: photoWidth * 1.32
-                            )
-                                .overlay {
-                                    LinearGradient(
-                                        colors: [.clear, .black.opacity(0.5)], startPoint: .center, endPoint: .bottom
-                                    ).mask(Image(tool.asset).resizable().scaledToFit())
-                                }
-                                .overlay(alignment: .bottom) {
-                                    Text(tool.title).font(.system(size: 19, weight: .bold)).foregroundStyle(.white)
-                                        .padding(.bottom, 15).padding(.horizontal, 3).minimumScaleFactor(0.65)
-                                        .lineLimit(1)
-                                }.rotationEffect(
-                                    .degrees(tool == .collage ? -3 : tool == .filters ? 3 : 0))
-                                .frame(width: cardWidth, height: photoWidth * 1.32 + 12)
-                        }.buttonStyle(KadrioPressButtonStyle()).zIndex(Double(4 - (KadrioTool.allCases.firstIndex(of: tool) ?? 0)))
-                            .accessibilityIdentifier("KadrioHomeTool-" + tool.rawValue).id(tool)
-                    }
-                }.scrollTargetLayout().padding(.vertical, 10)
-            }.contentMargins(.horizontal, 32, for: .scrollContent)
-                .scrollClipDisabled()
-                .scrollIndicators(.hidden).scrollTargetBehavior(.viewAligned).scrollPosition(id: $carouselTool)
-            HStack(spacing: 5) {
+        return ScrollView(.horizontal) {
+            HStack(spacing: -6) {
                 ForEach(KadrioTool.allCases) { tool in
-                    Capsule().fill(carouselTool == tool ? .black : .gray.opacity(0.25)).frame(
-                        width: carouselTool == tool ? 22 : 7, height: 4)
+                    Button {
+                        selectedTool = tool
+                        addPhoto = true
+                    } label: {
+                        Image(tool.asset).resizable().scaledToFit().frame(
+                            width: photoWidth, height: photoWidth * 1.32
+                        )
+                            .overlay {
+                                LinearGradient(
+                                    colors: [.clear, .black.opacity(0.5)], startPoint: .center, endPoint: .bottom
+                                ).mask(Image(tool.asset).resizable().scaledToFit())
+                            }
+                            .overlay(alignment: .bottom) {
+                                Text(tool.title).font(.system(size: 19, weight: .bold)).foregroundStyle(.white)
+                                    .padding(.bottom, 15).padding(.horizontal, 3).minimumScaleFactor(0.65)
+                                    .lineLimit(1)
+                            }.rotationEffect(
+                                .degrees(tool == .collage ? -3 : tool == .filters ? 3 : 0))
+                            .frame(width: cardWidth, height: photoWidth * 1.32 + 12)
+                    }.buttonStyle(KadrioPressButtonStyle()).zIndex(Double(4 - (KadrioTool.allCases.firstIndex(of: tool) ?? 0)))
+                        .accessibilityIdentifier("KadrioHomeTool-" + tool.rawValue).id(tool)
                 }
-            }.accessibilityHidden(true)
-        }
+            }.scrollTargetLayout().padding(.vertical, 10)
+        }.contentMargins(.horizontal, 32, for: .scrollContent)
+            .scrollClipDisabled()
+            .scrollIndicators(.hidden).scrollTargetBehavior(.viewAligned)
     }
 
     private var photoSourceSheet: some View {

@@ -61,6 +61,10 @@
 "retry" = "Try again";
 "error.image" = "This photo could not be opened. Choose another image.";
 "error.storage" = "Your works could not be read or written. Check available storage and try again.";
+"storageRecovery.title" = "Your data could not be opened";
+"storageRecovery.message" = "The saved works and token balance could not be read. Existing files have not been changed or reset. Try again when storage is available. A damaged data file requires a valid copy to recover; Kadrio will not replace it automatically.";
+"error.pendingRead" = "The interrupted save record could not be read. Your existing works and token balance are available. The record and files have been preserved. Saving again and clearing history are blocked until the operation can be recovered.";
+"error.pendingFilesMissing" = "Files needed to finish an interrupted save are missing or unavailable. Your existing works and token balance remain available. The operation and remaining files are preserved; the photo will not be sent to Photos again.";
 "error.tokens" = "You have used all your saves. Get more tokens to save this edit.";
 "error.photos" = "Allow saving to Photos in Settings. Your tokens have not been used.";
 "error.camera" = "Allow camera access in Settings.";
@@ -87,7 +91,7 @@
 "redo" = "Redo";
 "layout" = "Layout";
 "layout.number" = "Layout %d";
-"collage.gesture" = "Drag & pinch each photo";
+"collage.gesture" = "Drag and pinch each photo. Hold and drag to swap. Tap to select a photo, then use Replace photo. Drag the arrow handles to resize cells.";
 "spacing" = "Spacing";
 "rotate" = "Rotate";
 "flip" = "Flip";
@@ -120,3 +124,22 @@
 "collage.limit.message" = "Your collage already has the maximum of 4 photos.";
 
 "color.opacity.label" = "Color opacity";
+
+"colorControls" = "Color controls";
+"corrections" = "Adjust";
+"brightness" = "Brightness";
+"contrast" = "Contrast";
+"resetCorrections" = "Reset adjustments";
+"correction.value" = "%@ · %+d";
+
+"saved" = "Saved";
+
+"alreadySaved" = "Already saved";
+
+"error.saveFinalize" = "The photo is already saved to your library. The local work could not be finalized. Try saving again; no additional Photos copy will be created.";
+"error.saveUncertain" = "A previous save was interrupted. Kadrio cannot confirm whether the photo was added to Photos. Its prepared files are preserved. Saving again and clearing history are blocked to avoid a duplicate or losing the operation. No additional token has been charged.";
+"image.loadFailed" = "Could not load photo";
+"preview.renderFailed" = "Could not process the image";
+
+"collage.replacePhoto" = "Replace photo";
+"collage.resize" = "Resize cells";

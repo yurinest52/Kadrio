@@ -22,11 +22,6 @@ struct KadrioOnboardingView: View {
                         Text(kadrioText("onboarding.subtitle")).font(.system(size: 15)).foregroundStyle(
                             Color.kadrioSecondary
                         ).multilineTextAlignment(.center).padding(.top, 15)
-                        HStack(spacing: 6) {
-                            Capsule().frame(width: 19, height: 5)
-                            Circle().fill(.gray.opacity(0.25)).frame(width: 5)
-                            Circle().fill(.gray.opacity(0.25)).frame(width: 5)
-                        }.frame(height: 8).padding(.top, 18).accessibilityHidden(true)
                         Spacer(minLength: 20)
                     }.padding(.horizontal, 24)
                 }.scrollIndicators(.hidden)
@@ -53,18 +48,23 @@ struct KadrioPaywallView: View {
     var body: some View {
         NavigationStack {
             GeometryReader { geometry in
+                let compact = geometry.size.height < 520
+                let contentWidth = max(1, geometry.size.width - 48)
+                let artworkHeight = min(contentWidth * 250 / 342, compact ? max(1, geometry.size.height) * 0.34 : .infinity)
                 ScrollView {
-                    VStack(spacing: 18) {
+                    VStack(spacing: compact ? 12 : 18) {
                         KadrioPaywallArtwork()
-                            .frame(height: max(1, geometry.size.width - 48) * 250 / 342)
+                            .frame(width: artworkHeight * 342 / 250, height: artworkHeight)
+                            .frame(maxWidth: .infinity)
                         VStack(spacing: 7) {
                             Text(kadrioText("paywall.title")).font(.system(size: 28, weight: .heavy)).tracking(-0.8)
                             Text(kadrioText("paywall.subtitle")).font(.system(size: 14)).foregroundStyle(
                                 Color.kadrioSecondary)
-                        }
+                        }.multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
                         VStack(alignment: .leading, spacing: 13) {
                             ForEach(["paywall.tools", "paywall.resolution", "paywall.share"], id: \.self) { key in
                                 Label(kadrioText(key), systemImage: "checkmark.circle.fill").font(.system(size: 15))
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
                         }.padding(.vertical, 7)
                         HStack(spacing: 12) {
@@ -73,27 +73,13 @@ struct KadrioPaywallView: View {
                                 Text(kadrioText("paywall.tokens")).font(.system(size: 16, weight: .semibold))
                                 Text(kadrioText("paywall.threeSaves")).font(.system(size: 12)).foregroundStyle(
                                     Color.kadrioSecondary)
-                            }
-                            Spacer()
-                            Text(kadrioText("paywall.pricePlaceholder")).font(.system(size: 20, weight: .bold))
+                            }.fixedSize(horizontal: false, vertical: true)
+                            Spacer(minLength: 8)
+                            Text(kadrioText("paywall.pricePlaceholder")).font(.system(size: 20, weight: .bold)).fixedSize()
                         }.padding(16).background(.white, in: RoundedRectangle(cornerRadius: 18)).overlay(
                             RoundedRectangle(cornerRadius: 18).stroke(.black, lineWidth: 1.5))
-                        KadrioPrimaryButton(title: kadrioText(processing ? "loading" : "paywall.getTokens")) {
-                            guard !processing else { return }
-                            processing = true
-                            Task {
-                                let replenished = await app.replenish()
-                                if !replenished { processing = false }
-                            }
-                        }.accessibilityIdentifier("KadrioPaywallGetTokens").disabled(processing)
-                        HStack(spacing: 8) {
-                            Link(kadrioText("privacy"), destination: privacyURL)
-                                .padding(.horizontal, 4).frame(minHeight: 44)
-                            Text("·")
-                            Link(kadrioText("terms"), destination: termsURL)
-                                .padding(.horizontal, 4).frame(minHeight: 44)
-                        }.font(.system(size: 11)).foregroundStyle(Color.kadrioSecondary).padding(.bottom, 15)
-                    }.padding(.horizontal, 24).padding(.top, 0).frame(minHeight: geometry.size.height, alignment: .top)
+                    }.frame(width: contentWidth).padding(.horizontal, 24).padding(.bottom, 12)
+                        .frame(minHeight: geometry.size.height, alignment: .top)
                 }.scrollIndicators(.hidden)
             }
             .background(Color.kadrioBackground)
@@ -105,12 +91,46 @@ struct KadrioPaywallView: View {
                     ).accessibilityIdentifier("KadrioPaywallClose")
                 }.padding(.horizontal, 24).padding(.top, 4).padding(.bottom, 0).background(Color.kadrioBackground)
             }
+            .safeAreaInset(edge: .bottom, spacing: 0) { purchaseControls }
             .toolbar(.hidden, for: .navigationBar)
         }
         .background(Color.kadrioBackground.ignoresSafeArea())
         .interactiveDismissDisabled(true)
         .modifier(KadrioScreenEntrance())
         .modifier(KadrioErrorModifier(app: app))
+    }
+
+    private var purchaseControls: some View {
+        VStack(spacing: 8) {
+            KadrioPrimaryButton(title: kadrioText(processing ? "loading" : "paywall.getTokens")) {
+                guard !processing else { return }
+                processing = true
+                Task {
+                    let replenished = await app.replenish()
+                    if !replenished { processing = false }
+                }
+            }.accessibilityIdentifier("KadrioPaywallGetTokens").disabled(processing)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) {
+                    legalLink("privacy", destination: privacyURL).fixedSize(horizontal: true, vertical: true)
+                    Text("·")
+                    legalLink("terms", destination: termsURL).fixedSize(horizontal: true, vertical: true)
+                }
+                VStack(spacing: 0) {
+                    legalLink("privacy", destination: privacyURL)
+                    legalLink("terms", destination: termsURL)
+                }
+            }.font(.system(size: 11)).foregroundStyle(Color.kadrioSecondary)
+                .frame(maxWidth: .infinity)
+        }.padding(.horizontal, 24).padding(.vertical, 12).background(Color.kadrioBackground)
+    }
+
+    private func legalLink(_ title: String, destination: URL) -> some View {
+        Link(destination: destination) {
+            Text(kadrioText(title)).multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 4).frame(minHeight: 44)
+        }
     }
 }
 
