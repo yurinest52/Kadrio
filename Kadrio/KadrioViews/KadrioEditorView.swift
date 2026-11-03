@@ -39,12 +39,18 @@ struct KadrioEditorView: View {
                 .background(Color.kadrioBackground.ignoresSafeArea())
                 .toolbar(.hidden, for: .navigationBar)
         }
+        .ignoresSafeArea(.keyboard, edges: .bottom)
         .modifier(KadrioScreenEntrance())
         .disabled(savingRequest || app.saving || importing)
         .interactiveDismissDisabled(model.dirty || app.saving || savingRequest)
-        .sheet(isPresented: $showColor, onDismiss: model.endContinuousEditing) {
-            KadrioFrameColorView(
-                color: model.editingBinding(for: \.frameColor), editingChanged: model.sliderEditingChanged)
+        .onChange(of: model.tool) { _, _ in showColor = false }
+        .background {
+            KadrioBottomSheet(isPresented: $showColor, height: 500,
+                              onDismiss: model.endContinuousEditing, dragHandleOnly: true, isolatesKeyboard: true) {
+                KadrioFrameColorView(
+                    color: model.editingBinding(for: \.frameColor),
+                    editingChanged: model.sliderEditingChanged, onClose: { showColor = false })
+            }.frame(width: 0, height: 0)
         }
         .fullScreenCover(isPresented: $app.showPaywall) {
             KadrioPaywallView {

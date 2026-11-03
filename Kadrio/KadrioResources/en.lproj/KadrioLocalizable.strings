@@ -143,3 +143,6 @@
 
 "collage.replacePhoto" = "Replace photo";
 "collage.resize" = "Resize cells";
+
+"color.invalidHex" = "Invalid HEX code. Use #RGB, #RGBA, #RRGGBB or #RRGGBBAA with digits 0–9 and letters A–F. The leading # is optional.";
+"color.invalidOpacity" = "Enter a whole-number opacity from 0 to 100%.";

@@ -105,7 +105,7 @@ struct KadrioShareItem: Identifiable {
 }
 
 struct KadrioAccessView: View {
-    @Environment(\.dismiss) private var dismiss
+    let onClose: () -> Void
     @Environment(\.openURL) private var openURL
     var body: some View {
         ScrollView {
@@ -117,19 +117,21 @@ struct KadrioAccessView: View {
                     .multilineTextAlignment(.center)
             }.padding(24)
         }
+        .scrollDisabled(true)
         .background(Color.white)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             VStack(spacing: 4) {
                 KadrioPrimaryButton(title: kadrioText("openSettings")) {
                     if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
                 }
-                Button(kadrioText("notNow")) { dismiss() }.font(.system(size: 14)).foregroundStyle(
+                Button(kadrioText("notNow")) { onClose() }.font(.system(size: 14)).foregroundStyle(
                     Color.kadrioSecondary
                 ).frame(height: 44)
             }.padding(.horizontal, 24).padding(.top, 8).padding(.bottom, 12).background(.white)
         }
-        .presentationBackground(Color.white)
-        .presentationDetents([.height(400), .large]).presentationDragIndicator(.visible)
+        .onAppear {
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        }
     }
 }
 
@@ -147,8 +149,10 @@ struct KadrioErrorModifier: ViewModifier {
             } message: {
                 Text(app.errorMessage ?? "")
             }
-            .sheet(isPresented: Binding(get: { active && app.accessDenied }, set: { app.accessDenied = $0 })) {
-                KadrioAccessView()
+            .background {
+                KadrioBottomSheet(isPresented: Binding(get: { active && app.accessDenied }, set: { app.accessDenied = $0 }), height: 400) {
+                    KadrioAccessView { app.accessDenied = false }
+                }.frame(width: 0, height: 0)
             }
     }
 }

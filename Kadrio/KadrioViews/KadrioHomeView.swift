@@ -131,14 +131,11 @@ struct KadrioHomeView: View {
             .toolbar(.hidden, for: .navigationBar)
         }
         .modifier(KadrioScreenEntrance())
-        .overlay {
-            Color.black.opacity(addPhoto ? 0.14 : 0)
-                .ignoresSafeArea()
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
-                .animation(.easeInOut(duration: 0.22), value: addPhoto)
+        .background {
+            KadrioBottomSheet(isPresented: $addPhoto, height: 270, onDismiss: openSelectedPhotoSource) {
+                photoSourceSheet
+            }.frame(width: 0, height: 0)
         }
-        .sheet(isPresented: $addPhoto, onDismiss: openSelectedPhotoSource) { photoSourceSheet }
         .fullScreenCover(isPresented: $showCamera) {
             KadrioCameraView { image in if let image { importCamera(image) } }.ignoresSafeArea()
         }
@@ -216,6 +213,7 @@ struct KadrioHomeView: View {
         }
         .background(Color.white)
         .scrollIndicators(.hidden)
+        .scrollDisabled(true)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             Button(kadrioText("cancel")) {
                 photoSourceChoice = nil
@@ -225,8 +223,6 @@ struct KadrioHomeView: View {
             .accessibilityIdentifier("KadrioSourceCancel")
             .padding(.horizontal, 24).padding(.bottom, 12).background(.white)
         }
-        .presentationBackground(Color.white)
-        .presentationDetents([.height(270)]).presentationDragIndicator(.visible).presentationCornerRadius(27)
     }
 
     private func sourceButton(title: String, subtitle: String, symbol: String, action: @escaping () -> Void)
