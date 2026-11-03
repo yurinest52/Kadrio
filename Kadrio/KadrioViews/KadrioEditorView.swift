@@ -5,21 +5,35 @@ struct KadrioEditorView: View {
     @EnvironmentObject private var app: KadrioAppState
     @Environment(\.dismiss) private var dismiss
     @StateObject private var model: KadrioEditorModel
+    private let onClose: (() -> Void)?
+
+
     @State private var discard = false
     @State private var showPhotoLimit = false
+
+
     @State private var showColor = false
+
+
     @State private var showPicker = false
     @State private var pendingLayout: KadrioCollageLayout?
     @State private var replacementSourceID: UUID?
     @State private var photoItems: [PhotosPickerItem] = []
     @State private var importing = false
+
+
     @State private var savedWork: KadrioWork?
     @State private var savedBanner = false
     @State private var savingRequest = false
     @State private var saveSpinner = false
     @State private var share: KadrioShareItem?
 
-    init(request: KadrioEditorRequest) { _model = StateObject(wrappedValue: KadrioEditorModel(request: request)) }
+
+    init(request: KadrioEditorRequest, onClose: (() -> Void)? = nil) {
+        _model = StateObject(wrappedValue: KadrioEditorModel(request: request))
+        self.onClose = onClose
+    }
+
 
     var body: some View {
         NavigationStack {
@@ -39,7 +53,6 @@ struct KadrioEditorView: View {
                 .background(Color.kadrioBackground.ignoresSafeArea())
                 .toolbar(.hidden, for: .navigationBar)
         }
-        .ignoresSafeArea(.keyboard, edges: .bottom)
         .modifier(KadrioScreenEntrance())
         .disabled(savingRequest || app.saving || importing)
         .interactiveDismissDisabled(model.dirty || app.saving || savingRequest)
@@ -129,6 +142,7 @@ struct KadrioEditorView: View {
         .onChange(of: photoItems) { _, items in if !items.isEmpty { importMore(items) } }
     }
 
+
     private var header: some View {
         KadrioEditorHeader(model: model, isSaving: app.saving, isImporting: importing,
             isSaveRequested: savingRequest, showSaveSpinner: saveSpinner,
@@ -174,6 +188,7 @@ struct KadrioEditorView: View {
         }
     }
 
+
     private func addPhotos() {
         guard model.activeSourceCount < 4 else { showPhotoLimit = true; return }
         pendingLayout = nil
@@ -202,6 +217,7 @@ struct KadrioEditorView: View {
         pendingLayout = nil
         model.selectLayout(layout)
     }
+
 
     private func importMore(_ items: [PhotosPickerItem]) {
         guard !importing else { return }
@@ -244,10 +260,12 @@ struct KadrioEditorView: View {
         }
     }
 
+
     private func closeEditor() {
         model.finish()
-        dismiss()
+        if let onClose { onClose() } else { dismiss() }
     }
+
 
     private func save() {
         guard !savingRequest, !app.saving, !importing, model.activeSourceCount > 0 else { return }

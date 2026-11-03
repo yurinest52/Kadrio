@@ -139,7 +139,9 @@ struct KadrioHomeView: View {
         .fullScreenCover(isPresented: $showCamera) {
             KadrioCameraView { image in if let image { importCamera(image) } }.ignoresSafeArea()
         }
-        .fullScreenCover(item: $editor) { request in KadrioEditorView(request: request) }
+        .background {
+            KadrioEditorPresentation(request: $editor).frame(width: 0, height: 0)
+        }
         .sheet(item: $viewedWork) { KadrioWorkPreviewView(work: $0) }
         .fullScreenCover(
             isPresented: Binding(get: { app.showPaywall && editor == nil }, set: { app.showPaywall = $0 })

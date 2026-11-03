@@ -31,38 +31,22 @@ struct KadrioBottomSheet<Sheet: View>: UIViewControllerRepresentable {
     final class Coordinator: NSObject, UIViewControllerTransitioningDelegate, UIGestureRecognizerDelegate {
         var parent: KadrioBottomSheet
         weak var presenter: KadrioSheetPresenter?
-        var host: UIHostingController<KadrioSheetBody<Sheet>>?
+        var host: KadrioSheetHostingController<Sheet>?
         private var interaction: UIPercentDrivenInteractiveTransition?
-        private var keyboardOverlap: CGFloat = 0
 
         init(parent: KadrioBottomSheet) { self.parent = parent }
 
         func update() {
-            if parent.isolatesKeyboard {
-                var ancestor = presenter?.parent
-                while let controller = ancestor {
-                    if let hosting = controller as? KadrioKeyboardSafeAreaHost {
-                        if hosting.safeAreaRegions.contains(.keyboard) { hosting.safeAreaRegions.remove(.keyboard) }
-                        break
-                    }
-                    ancestor = controller.parent
-                }
-            }
             if parent.isPresented {
                 if let host {
-                    host.rootView = KadrioSheetBody(keyboardOverlap: keyboardOverlap, content: parent.sheet())
+                    host.rootView = KadrioSheetBody(content: parent.sheet())
                     return
                 }
                 guard let presenter, presenter.viewIfLoaded?.window != nil else { return }
                 var presentingController: UIViewController = presenter
                 while let ancestor = presentingController.parent { presentingController = ancestor }
                 guard presentingController.presentedViewController == nil else { return }
-                let host = UIHostingController(rootView: KadrioSheetBody(content: parent.sheet()))
-                if parent.isolatesKeyboard {
-                    host.safeAreaRegions.remove(.keyboard)
-                    NotificationCenter.default.addObserver(self, selector: #selector(keyboardFrameChanged(_:)),
-                        name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
-                }
+                let host = KadrioSheetHostingController(content: parent.sheet(), avoidsKeyboard: parent.isolatesKeyboard)
                 host.modalPresentationStyle = .custom
                 host.transitioningDelegate = self
                 host.overrideUserInterfaceStyle = .light
@@ -80,29 +64,13 @@ struct KadrioBottomSheet<Sheet: View>: UIViewControllerRepresentable {
             }
         }
 
-        @objc private func keyboardFrameChanged(_ notification: Notification) {
-            guard let host, let window = host.view.window,
-                  let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect,
-                  !host.isBeingDismissed else { return }
-            let windowFrame = window.convert(frame, from: window.screen.coordinateSpace)
-            let localFrame = host.view.convert(windowFrame, from: window)
-            let contentRect = host.view.bounds.inset(by: host.view.safeAreaInsets)
-            let intersection = contentRect.intersection(localFrame)
-            let overlap = intersection.isNull || intersection.isEmpty ? 0 : intersection.height
-            guard keyboardOverlap != overlap else { return }
-            keyboardOverlap = overlap
-            host.rootView = KadrioSheetBody(keyboardOverlap: overlap, content: parent.sheet())
-        }
-
         func presentationController(forPresented presented: UIViewController, presenting: UIViewController?,
                                     source: UIViewController) -> UIPresentationController? {
             let controller = KadrioSheetPresentation(presentedViewController: presented, presenting: presenting)
             controller.height = parent.height
             controller.onDismiss = { [weak self] in
                 guard let self else { return }
-                NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
                 host = nil
-                keyboardOverlap = 0
                 interaction = nil
                 parent.isPresented = false
                 parent.onDismiss()
@@ -168,15 +136,42 @@ final class KadrioSheetPresenter: UIViewController {
     }
 }
 
-@MainActor
-private protocol KadrioKeyboardSafeAreaHost: AnyObject {
-    var safeAreaRegions: SafeAreaRegions { get set }
+final class KadrioSheetHostingController<Content: View>: UIViewController {
+    private let contentHost: UIHostingController<KadrioSheetBody<Content>>
+    private let avoidsKeyboard: Bool
+
+    var rootView: KadrioSheetBody<Content> {
+        get { contentHost.rootView }
+        set { contentHost.rootView = newValue }
+    }
+
+    init(content: Content, avoidsKeyboard: Bool) {
+        contentHost = UIHostingController(rootView: KadrioSheetBody(content: content))
+        contentHost.safeAreaRegions = .container
+        self.avoidsKeyboard = avoidsKeyboard
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) { return nil }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .white
+        addChild(contentHost)
+        guard let content = contentHost.view else { return }
+        content.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(content)
+        NSLayoutConstraint.activate([
+            content.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
+            content.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor),
+            content.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            content.bottomAnchor.constraint(equalTo: avoidsKeyboard ? view.keyboardLayoutGuide.topAnchor : view.safeAreaLayoutGuide.bottomAnchor)
+        ])
+        contentHost.didMove(toParent: self)
+    }
 }
 
-extension UIHostingController: KadrioKeyboardSafeAreaHost {}
-
 struct KadrioSheetBody<Content: View>: View {
-    var keyboardOverlap: CGFloat = 0
     let content: Content
 
     var body: some View {
@@ -186,9 +181,7 @@ struct KadrioSheetBody<Content: View>: View {
                 .accessibilityHidden(true)
             content
         }
-        .padding(.bottom, keyboardOverlap)
         .background(.white)
-        .animation(.easeOut(duration: 0.25), value: keyboardOverlap)
     }
 }
 

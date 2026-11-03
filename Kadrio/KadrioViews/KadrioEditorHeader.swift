@@ -19,13 +19,17 @@ struct KadrioEditorHeader: View {
                 model.undo()
             } label: {
                 Image(systemName: "arrow.uturn.backward").frame(width: 42, height: 44)
-            }.disabled(model.undoStates.isEmpty).accessibilityLabel(kadrioText("undo")).accessibilityIdentifier(
+            }.disabled(model.undoStates.isEmpty)
+                .opacity(model.undoStates.isEmpty ? 0.3 : 1)
+                .accessibilityLabel(kadrioText("undo")).accessibilityIdentifier(
                 "KadrioEditorUndo")
             Button {
                 model.redo()
             } label: {
                 Image(systemName: "arrow.uturn.forward").frame(width: 42, height: 44)
-            }.disabled(model.redoStates.isEmpty).accessibilityLabel(kadrioText("redo")).accessibilityIdentifier(
+            }.disabled(model.redoStates.isEmpty)
+                .opacity(model.redoStates.isEmpty ? 0.3 : 1)
+                .accessibilityLabel(kadrioText("redo")).accessibilityIdentifier(
                 "KadrioEditorRedo")
             Spacer()
             Button {
