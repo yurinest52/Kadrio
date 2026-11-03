@@ -101,7 +101,6 @@ struct KadrioEditorView: View {
         .animation(.easeInOut(duration: 0.18), value: showPhotoLimit)
         .task {
             model.updatePreview()
-            await model.loadThumbnails()
         }
         .task(id: savingRequest) {
             guard savingRequest else { return }

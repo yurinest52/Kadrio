@@ -16,6 +16,7 @@ final class KadrioEditorModel: ObservableObject {
         var state: KadrioEditState
         var tool: KadrioTool
         var sourceIDs: [UUID]
+        var compositionSourceIDs: [UUID]
         var placementsBySourceID: [UUID: KadrioPlacement] = [:]
         var frameSettings: [KadrioFrame: FrameSettings] = [:]
 
@@ -28,7 +29,7 @@ final class KadrioEditorModel: ObservableObject {
     }
 
     @Published var selectedCollageSourceID: UUID?
-    private var dividerGesture: (divider: KadrioCollageDivider, geometry: KadrioCollageGeometry, split: KadrioCollageSplit, spacing: Double, layout: KadrioCollageLayout)?
+    private var dividerGesture: (divider: KadrioCollageDivider, geometry: KadrioCollageGeometry, split: KadrioCollageSplit, spacing: Double, layout: KadrioCollageLayout, translation: CGSize)?
     @Published private(set) var sources: [KadrioSource]
     @Published private var snapshot: Snapshot
     @Published private(set) var preview: UIImage?
@@ -36,7 +37,8 @@ final class KadrioEditorModel: ObservableObject {
     @Published private(set) var previewCropSourceSize = CGSize.zero
     @Published private(set) var previewDisplaySize = CGSize.zero
     @Published private(set) var previewSourceIDs: [UUID] = []
-    @Published private(set) var comparisonPreview: UIImage?
+    @Published private var comparisonImage: UIImage?
+    private var comparisonPreviewKey: KadrioRenderKey?
     @Published private(set) var thumbnails: [KadrioFilter: UIImage] = [:]
     @Published private(set) var layoutThumbnails: [KadrioCollageLayout: UIImage] = [:]
     @Published private(set) var frameThumbnails: [KadrioFrame: UIImage] = [:]
@@ -53,7 +55,7 @@ final class KadrioEditorModel: ObservableObject {
     private var scheduledThumbnailKey: ThumbnailBatchKey?
     private var thumbnailGeneration = 0
     private var layoutThumbnailKeys: [KadrioCollageLayout: ThumbnailRenderKey] = [:]
-    private var layoutThumbnailTask: Task<Void, Never>?
+    private var thumbnailTask: Task<Void, Never>?
     @Published private(set) var undoStates: [Snapshot] = []
     @Published private(set) var redoStates: [Snapshot] = []
     @Published private(set) var isRenderingPreview = false
@@ -69,6 +71,7 @@ final class KadrioEditorModel: ObservableObject {
     private var gestureEditing = false
     private var filterThumbnailKey: ThumbnailRenderKey?
     private static let historyLimit = 60
+    private static let thumbnailFrames = KadrioFrame.allCases.filter { $0 != .none }
     private var continuousEditStart: Snapshot?
     private var cropPanning = false
     private var cropZoomStart: Double?
@@ -95,7 +98,8 @@ final class KadrioEditorModel: ObservableObject {
         value.collageLayout = KadrioCollageLayout.initial(for: value.sourceCount)
         if let source = request.sources.first { value.freeRatio = value.collage ? 0.8 : Double(source.pixelWidth) / Double(source.pixelHeight) }
         var initial = Snapshot(state: value, tool: request.tool == .collage && !value.collage ? .crop : request.tool,
-                               sourceIDs: request.sources.prefix(value.sourceCount).map(\.id))
+                               sourceIDs: request.sources.prefix(value.sourceCount).map(\.id),
+                               compositionSourceIDs: request.sources.map(\.id))
         initial.storeActiveSettings()
         snapshot = initial
         initialState = value
@@ -131,6 +135,7 @@ final class KadrioEditorModel: ObservableObject {
 
     var dirty: Bool {
         state != savedSnapshot.state || snapshot.sourceIDs != savedSnapshot.sourceIDs
+            || snapshot.compositionSourceIDs != savedSnapshot.compositionSourceIDs
             || snapshot.placementsBySourceID != savedSnapshot.placementsBySourceID
             || snapshot.frameSettings != savedSnapshot.frameSettings
     }
@@ -181,6 +186,8 @@ final class KadrioEditorModel: ObservableObject {
     }
 
     func selectCropRatio(_ ratio: KadrioCropRatio) {
+        guard ratio != state.ratio else { return }
+        if state.ratio != .free, let aspectRatio = ratio.value, aspectRatio == state.cropAspectRatio { return }
         change {
             $0.ratio = ratio
             $0.cropRatioInverted = false
@@ -432,10 +439,13 @@ final class KadrioEditorModel: ObservableObject {
             endCollageGesture()
             beginContinuousEditing()
             gestureEditingChanged(true)
-            dividerGesture = (divider, geometry, state.collageSplit, state.spacing, state.collageLayout)
+            dividerGesture = (divider, geometry, state.collageSplit, state.spacing, state.collageLayout, .zero)
         }
-        guard let context = dividerGesture, context.divider == divider else { return }
-        let delta = context.geometry.canvasTranslation(translation)
+        guard var context = dividerGesture, context.divider == divider else { return }
+        let increment = CGSize(width: translation.width - context.translation.width,
+                               height: translation.height - context.translation.height)
+        context.translation = translation
+        let delta = context.geometry.canvasTranslation(increment)
         let size = KadrioGeometry.collageSize(preview: true)
         let gap = min(size.width, size.height) * context.spacing
         var split = context.split
@@ -444,6 +454,8 @@ final class KadrioEditorModel: ObservableObject {
         } else {
             split.y = min(0.8, max(0.2, split.y - delta.height / (size.height - 3 * gap)))
         }
+        context.split = split
+        dividerGesture = context
         change {
             var splits = $0.collageSplits ?? [:]
             splits[context.layout.rawValue] = split == KadrioCollageSplit() ? nil : split
@@ -458,6 +470,26 @@ final class KadrioEditorModel: ObservableObject {
         gestureEditingChanged(false)
     }
 
+    var comparisonPreview: UIImage? {
+        guard !sliderEditing, !gestureEditing, let previewState,
+              let comparisonPreviewKey,
+              comparisonPreviewKey == comparisonKey(state: previewState, sourceIDs: previewSourceIDs),
+              comparisonPreviewKey == comparisonKey(state: state, sourceIDs: snapshot.sourceIDs) else { return nil }
+        return comparisonImage
+    }
+
+    private func comparisonState(for state: KadrioEditState) -> KadrioEditState {
+        var value = state
+        value.filter = .original
+        value.brightness = 0
+        value.contrast = 1
+        return value
+    }
+
+    private func comparisonKey(state: KadrioEditState, sourceIDs: [UUID]) -> KadrioRenderKey {
+        KadrioRenderKey(state: comparisonState(for: state), sourceIDs: sourceIDs)
+    }
+
     var previewLoadState: PreviewLoadState {
         if isRenderingPreview { return .loading }
         if hasPreviewFailure { return .failure }
@@ -470,6 +502,10 @@ final class KadrioEditorModel: ObservableObject {
     }
 
     func updatePreview() {
+        if comparisonPreviewKey != comparisonKey(state: state, sourceIDs: snapshot.sourceIDs) {
+            comparisonPreviewKey = nil
+            comparisonImage = nil
+        }
         revision += 1
         hasPreviewFailure = false
         renderError = nil
@@ -479,7 +515,7 @@ final class KadrioEditorModel: ObservableObject {
             defer {
                 previewTask = nil
                 isRenderingPreview = false
-                if !Task.isCancelled { refreshLayoutThumbnails() }
+                if !Task.isCancelled { refreshThumbnails() }
             }
             while !Task.isCancelled {
                 let currentRevision = revision
@@ -499,13 +535,13 @@ final class KadrioEditorModel: ObservableObject {
                     previewDisplaySize = KadrioGeometry.frameBounds(cropSize, state: state).size
                     previewSourceIDs = sources.map(\.id)
                     preview = frame.image
-                    if interactive || gestureEditing { return }
-                    var comparisonState = state
-                    comparisonState.filter = .original
-                    comparisonState.brightness = 0
-                    comparisonState.contrast = 1
-                    if comparisonState == state {
-                        comparisonPreview = frame.image
+                    if interactive || sliderEditing || gestureEditing { return }
+                    let comparisonState = comparisonState(for: state)
+                    let comparisonKey = KadrioRenderKey(state: comparisonState, sourceIDs: sources.map(\.id))
+                    if comparisonPreviewKey == comparisonKey, comparisonImage != nil { return }
+                    if comparisonKey == KadrioRenderKey(state: state, sourceIDs: sources.map(\.id)) {
+                        comparisonPreviewKey = comparisonKey
+                        comparisonImage = frame.image
                         return
                     }
                     await Task.yield()
@@ -514,7 +550,8 @@ final class KadrioEditorModel: ObservableObject {
                     let comparisonImage = try await KadrioImageProcessing.shared.preview(sources: sources, state: comparisonState)
                     guard !Task.isCancelled else { return }
                     if revision != currentRevision { continue }
-                    comparisonPreview = comparisonImage
+                    comparisonPreviewKey = comparisonKey
+                    self.comparisonImage = comparisonImage
                     return
                 } catch {
                     guard !Task.isCancelled else { return }
@@ -535,7 +572,7 @@ final class KadrioEditorModel: ObservableObject {
         return ThumbnailRenderKey(sourceIDs: key.sourceIDs, state: key.state)
     }
 
-    func loadThumbnails() async {
+    private func loadFilterThumbnails() async {
         let key = currentFilterThumbnailKey
         guard filterThumbnailKey != key else { return }
         let photos = activeSources
@@ -556,13 +593,13 @@ final class KadrioEditorModel: ObservableObject {
     }
 
     func missingSourceCount(for layout: KadrioCollageLayout) -> Int {
-        max(0, layout.photoCount - sources.count)
+        max(0, layout.photoCount - snapshot.compositionSourceIDs.count)
     }
 
     private func loadFrameThumbnails() async {
         let photos = activeSources
         let ids = photos.map(\.id)
-        for frame in KadrioFrame.allCases where frame != .none {
+        for frame in Self.thumbnailFrames {
             guard !Task.isCancelled else { return }
             if let previewTask { await previewTask.value }
             guard !Task.isCancelled else { return }
@@ -579,8 +616,7 @@ final class KadrioEditorModel: ObservableObject {
     }
 
     private func sourceIDs(for count: Int) -> [UUID] {
-        let active = Set(snapshot.sourceIDs)
-        return Array((snapshot.sourceIDs + sources.filter { !active.contains($0.id) }.map(\.id)).prefix(count))
+        Array(snapshot.compositionSourceIDs.prefix(count))
     }
 
     private func apply(_ next: Snapshot) {
@@ -594,20 +630,24 @@ final class KadrioEditorModel: ObservableObject {
     }
 
     func swapSources(_ first: UUID, _ second: UUID) {
-        guard first != second, let a = snapshot.sourceIDs.firstIndex(of: first),
-              let b = snapshot.sourceIDs.firstIndex(of: second) else { return }
+        guard first != second, let a = snapshot.compositionSourceIDs.firstIndex(of: first),
+              let b = snapshot.compositionSourceIDs.firstIndex(of: second) else { return }
         var next = snapshot
-        next.sourceIDs.swapAt(a, b)
-        next.state.placements.swapAt(a, b)
+        next.compositionSourceIDs.swapAt(a, b)
+        next.sourceIDs = Array(next.compositionSourceIDs.prefix(snapshot.sourceIDs.count))
+        next.state.placements = placements(for: next.sourceIDs)
         apply(next)
     }
 
     @discardableResult
     func replaceSource(_ id: UUID, with source: KadrioSource) -> Bool {
-        guard let index = snapshot.sourceIDs.firstIndex(of: id), !snapshot.sourceIDs.contains(source.id) else { return false }
+        guard let index = snapshot.sourceIDs.firstIndex(of: id),
+              let orderIndex = snapshot.compositionSourceIDs.firstIndex(of: id),
+              !snapshot.compositionSourceIDs.contains(source.id) else { return false }
         if !sources.contains(where: { $0.id == source.id }) { sources.append(source) }
         var next = snapshot
         next.sourceIDs[index] = source.id
+        next.compositionSourceIDs[orderIndex] = source.id
         next.state.placements[index] = KadrioPlacement()
         apply(next)
         return true
@@ -638,24 +678,25 @@ final class KadrioEditorModel: ObservableObject {
         return ThumbnailRenderKey(sourceIDs: ids, state: value)
     }
 
-    private func refreshLayoutThumbnails() {
+    private func refreshThumbnails() {
         let layouts = KadrioCollageLayout.allCases
         let requests = layouts.map { layoutThumbnailRequest($0) }
-        let frames = KadrioFrame.allCases.filter { $0 != .none }
-        let frameKeys = frames.map { KadrioRenderKey(state: stateSelectingFrame($0), sourceIDs: activeSources.map(\.id)) }
+        let frames = Self.thumbnailFrames
+        let activeIDs = activeSources.map(\.id)
+        let frameKeys = frames.map { KadrioRenderKey(state: stateSelectingFrame($0), sourceIDs: activeIDs) }
         let key = ThumbnailBatchKey(layouts: requests, filter: currentFilterThumbnailKey, frames: frameKeys)
         let complete = zip(layouts, requests).allSatisfy { layoutThumbnailKeys[$0.0] == $0.1 }
             && filterThumbnailKey == key.filter
             && zip(frames, frameKeys).allSatisfy { frameThumbnailKeys[$0.0] == $0.1 }
         guard !complete else { return }
-        if scheduledThumbnailKey == key, let layoutThumbnailTask, !layoutThumbnailTask.isCancelled { return }
-        layoutThumbnailTask?.cancel()
+        if scheduledThumbnailKey == key, let thumbnailTask, !thumbnailTask.isCancelled { return }
+        thumbnailTask?.cancel()
         thumbnailGeneration += 1
         let generation = thumbnailGeneration
         scheduledThumbnailKey = key
-        layoutThumbnailTask = Task(priority: .utility) {
+        thumbnailTask = Task(priority: .utility) {
             defer {
-                if thumbnailGeneration == generation { layoutThumbnailTask = nil }
+                if thumbnailGeneration == generation { thumbnailTask = nil }
             }
             do { try await Task.sleep(for: .milliseconds(120)) } catch { return }
             for (layout, request) in zip(layouts, requests) {
@@ -668,7 +709,7 @@ final class KadrioEditorModel: ObservableObject {
                 layoutThumbnails[layout] = image
                 layoutThumbnailKeys[layout] = request
             }
-            await loadThumbnails()
+            await loadFilterThumbnails()
             await loadFrameThumbnails()
         }
     }
@@ -700,7 +741,7 @@ final class KadrioEditorModel: ObservableObject {
 
     func addSources(_ additions: [KadrioSource], layout: KadrioCollageLayout? = nil) {
         let existing = layout.map { sourceIDs(for: $0.photoCount) } ?? snapshot.sourceIDs
-        var selected = Set(existing)
+        var selected = Set(snapshot.compositionSourceIDs)
         let additions = Array(additions.filter { selected.insert($0.id).inserted }
             .prefix(max(0, (layout?.photoCount ?? 4) - existing.count)))
         guard !additions.isEmpty else {
@@ -711,6 +752,8 @@ final class KadrioEditorModel: ObservableObject {
         sources += additions.filter { retained.insert($0.id).inserted }
         var next = snapshot
         next.sourceIDs = existing + additions.map(\.id)
+        let active = Set(next.sourceIDs)
+        next.compositionSourceIDs = next.sourceIDs + snapshot.compositionSourceIDs.filter { !active.contains($0) }
         next.state.sourceCount = next.sourceIDs.count
         let selectedLayout = layout.flatMap { $0.photoCount <= next.sourceIDs.count ? $0 : nil }
             ?? KadrioCollageLayout.initial(for: next.sourceIDs.count)
@@ -727,7 +770,7 @@ final class KadrioEditorModel: ObservableObject {
 
     func finish() {
         previewTask?.cancel()
-        layoutThumbnailTask?.cancel()
+        thumbnailTask?.cancel()
         let sources = sources
         Task { await KadrioImageProcessing.shared.clean(sources) }
     }

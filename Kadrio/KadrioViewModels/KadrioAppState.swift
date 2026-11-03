@@ -17,7 +17,6 @@ final class KadrioAppState: ObservableObject {
     private var isInitialPaywall = false
     @Published var accessDenied = false
     let storage: KadrioWorksStorage
-    var worksDirectory: URL { storage.directory }
     private var pendingSave: KadrioWorksStorage.PendingSave?
 
     init(storage: KadrioWorksStorage = KadrioWorksStorage()) {
@@ -95,7 +94,7 @@ final class KadrioAppState: ObservableObject {
     }
 
     func workURL(_ work: KadrioWork, thumbnail: Bool = false) -> URL {
-        worksDirectory.appendingPathComponent(thumbnail ? work.thumbnailName : work.fileName)
+        storage.url(for: work, thumbnail: thumbnail)
     }
 
     func present(_ error: Error) {
@@ -172,7 +171,7 @@ final class KadrioAppState: ObservableObject {
         try await storage.recordPendingSave(pending)
         pendingSave = pending
         let recordIdentifier = await storage.photoIdentifierRecorder(for: pending)
-        let url = await storage.url(for: pending.work)
+        let url = storage.url(for: pending.work)
         do {
             try await KadrioPhotoLibrary.save(url, recordIdentifier: recordIdentifier)
         } catch {

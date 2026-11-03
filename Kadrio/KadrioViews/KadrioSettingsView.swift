@@ -8,7 +8,6 @@ struct KadrioConfiguration {
         else { return nil }
         return value
     }
-    static var supportEmail: String? { value("KadrioSupportEmail") }
     static func documentURL(_ document: KadrioDocument) -> URL? {
         guard let value = value(document == .support ? "KadrioSupportURL" : document == .privacy ? "KadrioPrivacyURL" : "KadrioTermsURL"),
             let url = URL(string: value), url.scheme == "https"

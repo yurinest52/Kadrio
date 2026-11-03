@@ -104,13 +104,28 @@ final class KadrioUserJourneyTests: XCTestCase {
         app.buttons["KadrioEditorSave"].tap()
         XCTAssertTrue(app.staticTexts["1 tokens left"].waitForExistence(timeout: 15))
         waitUntilPreviewReady(app)
+        let savedButton = app.buttons["KadrioEditorSave"]
+        XCTAssertEqual(savedButton.label, "Already saved")
+        XCTAssertFalse(savedButton.isEnabled)
+        savedButton.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        XCTAssertTrue(app.staticTexts["1 tokens left"].exists)
+        XCTAssertFalse(app.buttons["KadrioPaywallGetTokens"].exists)
+        app.buttons["Layout 4"].tap()
+        waitUntilPreviewReady(app)
+        XCTAssertTrue(app.buttons["KadrioEditorSave"].isEnabled)
         app.buttons["KadrioEditorSave"].tap()
         XCTAssertTrue(app.staticTexts["0 tokens left"].waitForExistence(timeout: 15))
+        app.buttons["Layout 2"].tap()
         waitUntilPreviewReady(app)
         app.buttons["KadrioEditorSave"].tap()
         XCTAssertTrue(app.buttons["KadrioPaywallGetTokens"].waitForExistence(timeout: 5))
         capture(app, "KadrioNoTokensPaywall")
         app.buttons["KadrioPaywallClose"].tap()
+        XCTAssertTrue(app.buttons["KadrioEditorSave"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["KadrioHomeAddPhoto"].exists)
+        app.buttons["KadrioEditorClose"].tap()
+        XCTAssertTrue(app.alerts.buttons["Discard"].waitForExistence(timeout: 3))
+        app.alerts.buttons["Discard"].tap()
         XCTAssertTrue(app.buttons["KadrioHomeAddPhoto"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["KadrioEditorSave"].exists)
         XCTAssertTrue(app.buttons["0 tokens left"].exists)
@@ -306,9 +321,11 @@ final class KadrioUserJourneyTests: XCTestCase {
     }
 
     @MainActor private func waitUntilPreviewReady(_ app: XCUIApplication) {
-        let save = app.buttons["KadrioEditorSave"]
-        XCTAssertTrue(save.waitForExistence(timeout: 10))
-        let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: save)
+        let preview = app.descendants(matching: .any).matching(identifier: "KadrioEditorPreview").firstMatch
+        XCTAssertTrue(preview.waitForExistence(timeout: 10))
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            preview.images.firstMatch.exists && preview.activityIndicators.count == 0
+        }, object: preview)
         XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 15), .completed)
     }
 

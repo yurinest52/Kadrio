@@ -53,7 +53,7 @@ struct KadrioEditorCanvas: View {
                             .accessibilityLabel(kadrioText("collage"))
                             .accessibilityHint(kadrioText("collage.gesture"))
                             .overlay(alignment: .topLeading) {
-                                collageOverlay(geometry: geometry, size: size)
+                                collageOverlay(geometry: geometry)
                                     .frame(width: size.width, height: size.height).clipped()
                                     .animation(.easeOut(duration: 0.12), value: dropTarget)
                                     .animation(.easeOut(duration: 0.12), value: draggedSourceID)
@@ -121,7 +121,7 @@ struct KadrioEditorCanvas: View {
     }
 
     @ViewBuilder
-    private func collageOverlay(geometry: KadrioCollageGeometry, size: CGSize) -> some View {
+    private func collageOverlay(geometry: KadrioCollageGeometry) -> some View {
         if let id = model.selectedCollageSourceID,
            let index = model.activeSources.firstIndex(where: { $0.id == id }), geometry.cells.indices.contains(index) {
             cellPath(index, geometry: geometry).stroke(.black.opacity(0.85), lineWidth: 3)
@@ -145,9 +145,7 @@ struct KadrioEditorCanvas: View {
             ForEach(KadrioCollageDivider.allCases) { divider in
                 if let canvasPoint = geometry.dividerPoint(divider) {
                     let point = canvasPoint.applying(geometry.canvasToView)
-                    if geometry.containsContent(point) {
-                        dividerHandle(divider, geometry: geometry).position(point)
-                    }
+                    dividerHandle(divider, geometry: geometry).position(point)
                 }
             }
         }

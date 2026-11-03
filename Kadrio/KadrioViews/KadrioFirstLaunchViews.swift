@@ -52,10 +52,11 @@ struct KadrioPaywallView: View {
             GeometryReader { geometry in
                 let compact = geometry.size.height < 520
                 let contentWidth = max(1, geometry.size.width - 48)
-                let artworkHeight = min(contentWidth * 250 / 342, compact ? max(0, geometry.size.height - 300) : .infinity)
+                let artworkHeight = min(contentWidth * 250 / 342, compact ? max(0, geometry.size.height - 280) : .infinity)
                 VStack(spacing: compact ? 8 : 18) {
                     KadrioPaywallArtwork()
                         .frame(width: artworkHeight * 342 / 250, height: artworkHeight)
+                        .scaleEffect(compact ? 1.4 : 1)
                         .frame(maxWidth: .infinity)
                     VStack(spacing: 7) {
                         Text(kadrioText("paywall.title")).font(.system(size: 28, weight: .heavy)).tracking(-0.8)

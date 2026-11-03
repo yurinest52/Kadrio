@@ -49,6 +49,9 @@ enum KadrioCropAction: String, CaseIterable {
 
 enum KadrioImageQuality {
     static let previewMaxPixel: Double = 1400
+    static let previewSourceLevels = [1400, 2800, 4200]
+    static let previewSourceMemoryBudget = 128 * 1024 * 1024
+    static let previewSourceCacheLimit = 160 * 1024 * 1024
     static let filterThumbnailMaxPixel: Double = 160
     static let layoutThumbnailSize = CGSize(width: 140, height: 175)
 }
@@ -399,23 +402,84 @@ struct KadrioCollageGeometry: Equatable {
     func dividerPoint(_ divider: KadrioCollageDivider) -> CGPoint? {
         guard cells.count >= 2 else { return nil }
         let vertical = divider == .vertical
+        var segments: [(CGPoint, CGPoint)] = []
+        func between(_ first: CGRect, _ second: CGRect, vertical: Bool) -> (CGPoint, CGPoint) {
+            if vertical {
+                let x = (first.maxX + second.minX) / 2
+                return (CGPoint(x: x, y: max(first.minY, second.minY)),
+                        CGPoint(x: x, y: min(first.maxY, second.maxY)))
+            }
+            let y = (first.minY + second.maxY) / 2
+            return (CGPoint(x: max(first.minX, second.minX), y: y),
+                    CGPoint(x: min(first.maxX, second.maxX), y: y))
+        }
         switch cells.count {
         case 2:
-            return vertical ? CGPoint(x: (cells[0].maxX + cells[1].minX) / 2, y: cells[0].midY) : nil
+            if vertical { segments = [between(cells[0], cells[1], vertical: true)] }
         case 3:
             if layout == .feature {
-                return vertical
-                    ? CGPoint(x: (cells[0].maxX + cells[1].minX) / 2, y: cells[0].midY)
-                    : CGPoint(x: cells[1].midX, y: (cells[1].minY + cells[2].maxY) / 2)
+                segments = [vertical ? between(cells[0], cells[1].union(cells[2]), vertical: true)
+                    : between(cells[1], cells[2], vertical: false)]
+            } else {
+                segments = [vertical ? between(cells[1], cells[2], vertical: true)
+                    : between(cells[0], cells[1].union(cells[2]), vertical: false)]
             }
-            return vertical
-                ? CGPoint(x: (cells[1].maxX + cells[2].minX) / 2, y: cells[1].midY)
-                : CGPoint(x: cells[0].midX, y: (cells[0].minY + cells[1].maxY) / 2)
         default:
-            return vertical
-                ? CGPoint(x: (cells[0].maxX + cells[1].minX) / 2, y: cells[0].midY)
-                : CGPoint(x: cells[2].midX, y: (cells[0].minY + cells[2].maxY) / 2)
+            segments = vertical
+                ? [between(cells[0], cells[1], vertical: true), between(cells[2], cells[3], vertical: true)]
+                : [between(cells[0], cells[2], vertical: false), between(cells[1], cells[3], vertical: false)]
         }
+        let canvasToOutput = canvasToView.concatenating(outputToView.inverted())
+        var longest: (point: CGPoint, length: CGFloat)?
+        for (start, end) in segments {
+            for visible in visibleDividerSegments(from: start.applying(canvasToOutput), to: end.applying(canvasToOutput)) {
+                let length = hypot(visible.1.x - visible.0.x, visible.1.y - visible.0.y)
+                if length > (longest?.length ?? 0) {
+                    longest = (CGPoint(x: (visible.0.x + visible.1.x) / 2,
+                                       y: (visible.0.y + visible.1.y) / 2), length)
+                }
+            }
+        }
+        return longest?.point.applying(canvasToOutput.inverted())
+    }
+
+    private func visibleDividerSegments(from start: CGPoint, to end: CGPoint) -> [(CGPoint, CGPoint)] {
+        let vertical = abs(end.y - start.y) >= abs(end.x - start.x)
+        let fixed = vertical ? (start.x + end.x) / 2 : (start.y + end.y) / 2
+        let crossMin = vertical ? contentRect.minX : contentRect.minY
+        let crossMax = vertical ? contentRect.maxX : contentRect.maxY
+        guard fixed >= crossMin, fixed <= crossMax else { return [] }
+        let radius = min(contentRadius, min(contentRect.width, contentRect.height) / 2)
+        let edgeDistance = min(fixed - crossMin, crossMax - fixed)
+        let inset = edgeDistance < radius
+            ? radius - sqrt(max(0, radius * radius - pow(radius - edgeDistance, 2))) : 0
+        let startValue = vertical ? start.y : start.x
+        let endValue = vertical ? end.y : end.x
+        let lower = max(min(startValue, endValue), (vertical ? contentRect.minY : contentRect.minX) + inset)
+        let upper = min(max(startValue, endValue), (vertical ? contentRect.maxY : contentRect.maxX) - inset)
+        guard upper > lower else { return [] }
+        func point(_ position: CGFloat) -> CGPoint {
+            vertical ? CGPoint(x: fixed, y: position) : CGPoint(x: position, y: fixed)
+        }
+        var cuts = [lower, upper]
+        if !frameBand.isNull {
+            for rect in [frameBand, frameBandInterior] {
+                cuts += [vertical ? rect.minY : rect.minX, vertical ? rect.maxY : rect.maxX]
+                    .filter { $0 > lower && $0 < upper }
+            }
+        }
+        cuts = Array(Set(cuts)).sorted()
+        var result: [(CGPoint, CGPoint)] = []
+        for (a, b) in zip(cuts, cuts.dropFirst()) {
+            let middle = point((a + b) / 2)
+            guard !frameBand.contains(middle) || frameBandInterior.contains(middle) else { continue }
+            if let last = result.last, last.1 == point(a) {
+                result[result.count - 1].1 = point(b)
+            } else {
+                result.append((point(a), point(b)))
+            }
+        }
+        return result
     }
 
     func containsContent(_ point: CGPoint) -> Bool {
@@ -426,11 +490,7 @@ struct KadrioCollageGeometry: Equatable {
     }
 
     func photo(at point: CGPoint) -> Int? {
-        let previewBounds = CGRect(origin: .zero, size: previewSize)
-        guard previewBounds.contains(point) else { return nil }
-        let outputPoint = point.applying(outputToView.inverted())
-        guard CGPath(roundedRect: contentRect, cornerWidth: contentRadius, cornerHeight: contentRadius, transform: nil).contains(outputPoint) else { return nil }
-        guard !frameBand.contains(outputPoint) || frameBandInterior.contains(outputPoint) else { return nil }
+        guard containsContent(point) else { return nil }
         let canvasPoint = point.applying(canvasToView.inverted())
         let radius = KadrioGeometry.collageCornerRadius(KadrioGeometry.collageSize(preview: true))
         return cells.firstIndex { CGPath(roundedRect: $0, cornerWidth: radius, cornerHeight: radius, transform: nil).contains(canvasPoint) }

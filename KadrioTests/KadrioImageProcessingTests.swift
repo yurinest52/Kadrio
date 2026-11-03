@@ -65,7 +65,7 @@ final class KadrioImageProcessingTests: XCTestCase {
                 initial.turns = turns
                 initial.flipped = flipped
                 initial.freeRatio = turns.isMultiple(of: 2) ? 1.5 : 1 / 1.5
-                model.state = initial
+                model.change { $0 = initial }
                 let initialPreview = try await KadrioImageProcessing.shared.preview(sources: [source], state: initial)
                 var expected = CIImage(cgImage: try XCTUnwrap(initialPreview.cgImage))
 
@@ -107,7 +107,7 @@ final class KadrioImageProcessingTests: XCTestCase {
             XCTAssertEqual(model.state, afterRotation)
         }
 
-        model.state.ratio = .square
+        model.selectCropRatio(.square)
         let freeRatio = model.state.freeRatio
         model.rotateClockwise()
         XCTAssertEqual(model.state.ratio, .square)

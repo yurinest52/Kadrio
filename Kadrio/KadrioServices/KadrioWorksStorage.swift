@@ -189,7 +189,7 @@ actor KadrioWorksStorage {
         return value
     }
 
-    func url(for work: KadrioWork, thumbnail: Bool = false) -> URL {
+    nonisolated func url(for work: KadrioWork, thumbnail: Bool = false) -> URL {
         directory.appendingPathComponent(thumbnail ? work.thumbnailName : work.fileName)
     }
 }
